@@ -9,6 +9,15 @@ djangorestframework = "*"
 psycopg2 = "*"
 django-cors-headers = "*"
 django-debug-toolbar = "*"
+channels = "*"
+django-allauth = "*"
+djangorestframework-simplejwt = "*"
+daphne = "*"
+pytest = "*"
+pytest-django = "*"
+factory-boy = "*"
+channels-redis = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
