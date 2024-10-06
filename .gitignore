@@ -1,0 +1,8 @@
+# Ignore virtual environments
+*.venv
+*.env
+Pipfile.lock
+
+# Python ignores
+__pycache__/
+*.py[cod]
