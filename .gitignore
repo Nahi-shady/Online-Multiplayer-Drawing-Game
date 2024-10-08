@@ -6,3 +6,7 @@ Pipfile.lock
 # Python ignores
 __pycache__/
 *.py[cod]
+
+
+# db
+db.sqlite3
