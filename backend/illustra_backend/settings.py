@@ -29,9 +29,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
-    'apps.chat',
-    'apps.games',
-    'apps.users'
+    'users',
+    'chat',
+    'games',
 ]
 
 MIDDLEWARE = [
@@ -147,3 +147,7 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# # Custome Model configuration 
+AUTH_USER_MODEL = 'users.User'
