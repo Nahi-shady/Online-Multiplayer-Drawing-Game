@@ -19,6 +19,7 @@ class UserModelSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
     date_joined = serializers.CharField(read_only=True)
+    id = serializers.IntegerField(read_only=True)
     
     queryset = User.objects.all()
     username = serializers.CharField(
@@ -30,7 +31,7 @@ class UserModelSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'confirm_password', 'date_joined']
+        fields = ['id', 'username', 'email', 'password', 'confirm_password', 'date_joined']
         
     def validate_email(self, value):
         if not is_valid_email(value):
