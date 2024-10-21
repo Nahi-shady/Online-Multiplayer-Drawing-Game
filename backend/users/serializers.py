@@ -1,8 +1,19 @@
+import re
 from datetime import datetime
+
 from .models import User
 
 from rest_framework.validators import UniqueValidator
 from rest_framework import serializers
+
+
+def is_valid_email(email):
+    email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+    
+    if re.match(email_regex, email):
+        return True
+    else:
+        return False
 
 class UserModelSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -17,14 +28,15 @@ class UserModelSerializer(serializers.ModelSerializer):
         validators=[UniqueValidator(queryset)]
     )
     
-    first_name = serializers.CharField(required=False)
-    last_name = serializers.CharField(required=False)
-    nickname = serializers.CharField(required=False)
-    
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'nickname', 'email', 'password', 'confirm_password', 'date_joined']
+        fields = ['username', 'email', 'password', 'confirm_password', 'date_joined']
         
+    def validate_email(self, value):
+        if not is_valid_email(value):
+            raise serializers.ValidationError("Invalid email format.")
+        return value
+    
     def validate_password(self, value):
         if len(value) < 8:
             raise serializers.ValidationError("Password must be at least 8 characters long.")
@@ -38,9 +50,8 @@ class UserModelSerializer(serializers.ModelSerializer):
     def create(self, data):
         data.pop('confirm_password')
         
-        user = User(**data)
-        user.set_password(data['password'])
-        user.date_joined = datetime.now()
-        user.save()
+        user = User.objects.create_user(email=data['email'], password=data['password'], **data)
+        
         
         return user
+    
