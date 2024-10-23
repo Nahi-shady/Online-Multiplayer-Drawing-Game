@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'users',
     'chat',
     'games',
+    'playground',
 ]
 
 MIDDLEWARE = [
