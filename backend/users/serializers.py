@@ -52,7 +52,5 @@ class UserModelSerializer(serializers.ModelSerializer):
         data.pop('confirm_password')
         
         user = User.objects.create_user(email=data['email'], password=data['password'], **data)
-        
-        
+            
         return user
-    
