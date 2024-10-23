@@ -154,5 +154,8 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# # Custome Model configuration 
+# Custome Model configuration 
 AUTH_USER_MODEL = 'users.User'
+
+# ASGI setup for django channels
+ASGI_APPLICATION = 'illustra_backend.asgi.application'
