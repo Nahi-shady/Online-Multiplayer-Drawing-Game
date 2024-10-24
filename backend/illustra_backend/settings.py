@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'channels',
+    'channels_redis',
     'users',
     'chat',
     'games',
@@ -160,3 +161,11 @@ AUTH_USER_MODEL = 'users.User'
 
 # ASGI setup for django channels
 ASGI_APPLICATION = 'illustra_backend.asgi.application'
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],  # Default Redis setup
+        },
+    },
+}
