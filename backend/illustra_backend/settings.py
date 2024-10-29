@@ -20,6 +20,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -29,12 +30,12 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
-    'channels',
-    'channels_redis',
     'users',
     'chat',
     'games',
     'playground',
+    'channels',
+    'channels_redis',
 ]
 
 MIDDLEWARE = [
@@ -67,6 +68,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'illustra_backend.wsgi.application'
+ASGI_APPLICATION = 'illustra_backend.asgi.application'
 
 
 # Database
@@ -160,12 +162,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.User'
 
 # ASGI setup for django channels
-ASGI_APPLICATION = 'illustra_backend.asgi.application'
+
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],  # Default Redis setup
-        },
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',  # Make sure the backend is correct
+        # 'CONFIG': {
+        #     "hosts": [('127.0.0.1', 6379)],  # Ensure the Redis host and port are correct
+        # },
     },
 }
