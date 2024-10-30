@@ -23,3 +23,10 @@ class User(AbstractBaseUser):
     
     def __str__(self):
         return self.username
+    
+class Contender(models.Model):
+    name = models.CharField(max_length=15, blank=False, null=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.name
