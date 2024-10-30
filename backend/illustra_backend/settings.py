@@ -33,7 +33,6 @@ INSTALLED_APPS = [
     'users',
     'chat',
     'games',
-    'playground',
     'channels',
     'channels_redis',
 ]
