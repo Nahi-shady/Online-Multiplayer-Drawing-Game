@@ -14,13 +14,26 @@ class CreateRoomView(APIView):
     permission_classes = [AllowAny]
     
     def post(self, request):
+        name = request.data.get('name')
+        if not name:
+            return Response({"detail": "Player name is required."}, status=status.HTTP_400_BAD_REQUEST)
+
         is_private = request.data.get('is_private', False)
         max_players = request.data.get('max_players', 14)
 
-        if is_private:
-            room = Room.objects.create_private_room(max_players=max_players)
-        else:
-            room = Room.objects.create_public_room(max_players=max_players)
+        if max_players > 14:
+            return Response({"detail": "Maximum players can't exceed 14."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        room = (
+            Room.objects.create_private_room(max_players=max_players)
+            if is_private else
+            Room.objects.create_public_room(max_players=max_players)
+        )
+        
+        player = Player.objects.create(name=name, room=room, turn_order=room.current_players_count)
+        room.current_drawer = player
+        room.current_players_count += 1
+        room.save()
         
         serializer = RoomSerializer(room)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -37,10 +50,12 @@ class JoinRoomView(APIView):
         if not name:
             return Response({"detail": "Player name is required."}, status=status.HTTP_400_BAD_REQUEST)
 
+        room = None
         if unique_code:
             room = Room.objects.get_private_room(unique_code=unique_code)
             if not room:
                 return Response({"detail": "Private room with this code does not exist or is inactive."}, status=status.HTTP_404_NOT_FOUND)
+            
             if room.current_players_count >= room.max_players:
                 return Response({"detail": "Room is full."}, status=status.HTTP_400_BAD_REQUEST)
         else:
@@ -48,35 +63,48 @@ class JoinRoomView(APIView):
             if not room:
                 return Response({"detail": "No public rooms available."}, status=status.HTTP_404_NOT_FOUND)
         
-        
         with transaction.atomic():
-            room.current_players_count += 1
-            room.save()
-
             player = Player.objects.create(name=name, room=room, turn_order=room.current_players_count)
-            player_serializer = PlayerSerializer(player)
+            room.current_players_count += 1
 
+            if room.current_players_count == 1:
+                room.current_drawer = player
+            room.save()
+            
+        player_serializer = PlayerSerializer(player)
         return Response(player_serializer.data, status=status.HTTP_200_OK)
 
 class LeaveRoomView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
     
-    def post(self, request, room_id):
-        name = request.data.get('name')
-        if not name:
-            return Response({"detail": "Player name is required."}, status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request):
+        player_id = request.data.get('player_id')
+        if not player_id:
+            return Response({"detail": "Player player_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        room = get_object_or_404(Room, id=room_id, is_active=True)
-        player = get_object_or_404(Player, name=name, room=room)
+        player = get_object_or_404(Player, id=player_id)
+        room = player.room
 
+            
         with transaction.atomic():
-            player.is_active = False
-            player.save()
+            if room.current_drawer == player:
+                if room.current_players_count <= 1:
+                    room.current_drawer = None
+                else:
+                    room.set_next_drawer()
+                    
+            player.delete()
 
             room.current_players_count -= 1
             if room.current_players_count <= 0:
                 room.is_active = False  # Deactivate room if no players are left
             room.save()
+            
+        active_players = room.players.filter(is_active=True).order_by('turn_order')
+        for i, player in enumerate(active_players):
+            player.turn_order = i
 
+        Player.objects.bulk_update(active_players, ['turn_order'])
+    
         return Response({"detail": "Left room successfully."}, status=status.HTTP_200_OK)
