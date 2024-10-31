@@ -15,16 +15,21 @@ class Room(models.Model):
 
     def set_next_drawer(self):
         players = list(self.players.filter(is_active=True).order_by('turn_order'))
+        
         if players:
             if self.current_drawer and self.current_drawer in players:
                 index = players.index(self.current_drawer)
                 next_index = (index + 1) % len(players)
             else:
                 next_index = 0
+                
             self.current_drawer = players[next_index]
             self.save()
-        return self.current_drawer
-    
+            
+            return self.current_drawer
+        else:
+            self.current_drawer = None
+            self.save()
     
     def __str__(self):
         return f"{'Private' if self.is_private else 'Public'} Room (ID: {self.id})"
