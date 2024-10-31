@@ -1,7 +1,10 @@
 # urls.py
+
 from django.urls import path
-from .views import RoomView
+from .views import CreateRoomView, JoinRoomView, LeaveRoomView
 
 urlpatterns = [
-    path('room/create', RoomView.as_view(), name='room-create'),
+    path('create-room', CreateRoomView.as_view(), name='create-room'),
+    path('join-room', JoinRoomView.as_view(), name='join-room'),
+    path('leave-room/<int:room_id>', LeaveRoomView.as_view(), name='leave-room'),
 ]
