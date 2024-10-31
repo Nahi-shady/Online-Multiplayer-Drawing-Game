@@ -48,3 +48,8 @@ class GameConsumer(AsyncWebsocketConsumer):
                 {'message': message}
             )
         )
+        
+    async def turn_update(self, event):
+        return self.send(
+            text_data=json.dumps(event['data'])
+        )
