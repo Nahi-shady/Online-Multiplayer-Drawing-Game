@@ -72,4 +72,11 @@ class GameConsumer(AsyncWebsocketConsumer):
             })
         )
         
+    # helper
+    @sync_to_async
+    async def get_player(self):
+        return Player.objects.get(id=self.player_id)
     
+    @sync_to_async
+    def get_players_in_order(self):
+        return list(Player.objects.filter(room_id=self.room_id).order_by("turn_order"))
