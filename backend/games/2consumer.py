@@ -48,4 +48,28 @@ class GameConsumer(AsyncWebsocketConsumer):
         )
         
         
+    # messenger
+    async def player_joined(self, event):
+        player = await self.get_player()
+        
+        await self.send(
+            json.dumps(
+            {
+                'type': 'player joined',
+                'player_id': player.id,
+                'player_name': player.name,
+            })
+        )
+    async def player_left(self, event):
+        player = await self.get_player()
+        
+        await self.send(
+            json.dumps(
+            {
+                'type': 'player left',
+                'player_id': player.id,
+                'player_name': player.name,
+            })
+        )
+        
     
