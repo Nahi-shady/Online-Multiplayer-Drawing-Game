@@ -55,7 +55,8 @@ class GameConsumer(AsyncWebsocketConsumer):
         
         if message_type == 'guess':
             await self.handle_guess(data.get('guess'))
-            
+        elif message_type == "next_turn":
+            await self.start_next_turn()
         
     # game logic
     async def handle_guess(self, guess):
@@ -99,8 +100,53 @@ class GameConsumer(AsyncWebsocketConsumer):
                 'leaderboard': [player.to_dict() for player in sorted_players]
             }
         )
+    
+    async def start_next_turn(self):
+        await self.set_next_drawer()
+        room = await self.get_room()
         
-     
+        # Reset the score_set, word and hints for the next round
+        # room.current_word = random.choice(room.word_list)
+        # room.hint_letters = 0
+        # await sync_to_async(room.save)()
+        self.score_set = 450
+    
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "new_turn",
+                "drawer_name": room.current_drawer.name,
+                # "word_length": len(room.current_word),
+            }
+        )
+        await self.start_turn_timer()
+        
+    async def start_turn_timer(self):
+        for remaining in range(45, 0, -1):
+            await asyncio.sleep(1)
+            
+            if remaining in {30, 15}:
+                await self.provide_hint()
+                
+            if remaining == 0:
+                await self.start_next_turn()
+                
+    async def provide_hint(self):
+        room = await self.get_room()
+        
+        if room.hint_letters < 2:
+            room.hint_letters += 1
+            hint = room.current_word[:room.hint_letters]
+            await sync_to_async(room.save)()
+            
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "hint_update",
+                    "hint": hint,
+                }
+            )
+    
     # messenger
     async def player_joined(self, event):
         player = await self.get_player()
@@ -133,6 +179,13 @@ class GameConsumer(AsyncWebsocketConsumer):
                 }
             )
         )
+    async def hint_update(self, event):
+        await self.send(json.dumps(
+            {
+                'type': 'hint_update',
+                'hint': event['hint']
+            }))
+        
         
     # helper
     @sync_to_async
@@ -143,6 +196,18 @@ class GameConsumer(AsyncWebsocketConsumer):
         return Room.objects.get(id=self.room_id)
     
     @sync_to_async
-    def get_players_in_order(self):
+    async def get_players_in_order(self):
         room = await self.get_room()
         return list(Player.objects.filter(room=room).order_by("turn_order"))
+    
+    async def set_next_drawer(self):
+        players = await self.get_players_in_order()
+        room = await self.get_room()
+        current_drawer_id = room.current_drawer.id
+        
+        drawer_idx = next((i for i, p in enumerate(players) if p.id == current_drawer_id), -1)
+        next_idx = (drawer_idx + 1) % len(players)
+        
+        room.current_drawer = players[next_idx]
+        await sync_to_async(room.save)()
+        
