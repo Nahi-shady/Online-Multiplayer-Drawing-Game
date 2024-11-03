@@ -5,8 +5,12 @@ from .managers import RoomManager
 class Room(models.Model):
     is_private = models.BooleanField(default=True)
     unique_code = models.CharField(max_length=8, blank=True, null=True, unique=True)
+    
     current_drawer = models.ForeignKey('Player', on_delete=models.SET_NULL, blank=True, null=True, related_name='drawer_room')
     current_players_count = models.IntegerField(default=0)
+    current_word = models.CharField(default='', blank=True, null=False)
+    score_pool = models.IntegerField(default=450, blank=True, null=False)
+    
     max_players = models.IntegerField(default=14)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
