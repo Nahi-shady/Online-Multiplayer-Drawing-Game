@@ -31,7 +31,6 @@ class CreateRoomView(APIView):
         )
         
         player = Player.objects.create(name=name, room=room, turn_order=room.current_players_count)
-        room.current_drawer = player
         room.current_players_count += 1
         room.save()
         
@@ -67,8 +66,6 @@ class JoinRoomView(APIView):
             player = Player.objects.create(name=name, room=room, turn_order=room.current_players_count)
             room.current_players_count += 1
 
-            if room.current_players_count == 1:
-                room.current_drawer = player
             room.save()
             
         player_serializer = PlayerSerializer(player)
