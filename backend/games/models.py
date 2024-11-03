@@ -46,5 +46,8 @@ class Player(models.Model):
     is_active = models.BooleanField(default=True)
     score = models.IntegerField(default=0)
 
+    def to_dict(self):
+        return {'id': self.id, 'name': self.name, 'score': self.score, 'turn': self.turn_order}
+    
     def __str__(self):
         return f"{self.name} in Room {self.room.id}"
