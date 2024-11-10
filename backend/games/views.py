@@ -33,6 +33,7 @@ class CreateRoomView(APIView):
         player = Player.objects.create(name=name, room=room, turn_order=room.current_players_count)
         room.current_players_count += 1
         room.save()
+        room.set_next_drawer()
         
         serializer = RoomSerializer(room)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
