@@ -99,21 +99,20 @@ class GameConsumer(AsyncWebsocketConsumer):
         room.turn_count = 0
         await sync_to_async(room.save)()
 
+        await self.reset_player_scores()
         await self.start_next_turn()
-        
+
     async def start_next_turn(self):
         room = await self.get_room()
         if room.turn_count >= 5:
             await self.channel_layer.group_send(
                 self.room_group_name,
-                {
-                    "type": 'game_over'
-                })
+                {"type": 'game_over'})
             return
-
-        await self.set_next_drawer()
-        drawer = await sync_to_async(lambda: room.current_drawer)()
         
+        await self.set_next_drawer(room)
+        drawer = await sync_to_async(lambda: room.current_drawer)()
+          
         room.turn_count = F('turn_count') + 1
         room.score_pool = 450
         await sync_to_async(room.save)()
@@ -122,7 +121,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             {
                 "type": "new_turn",
-                "drawer_name": drawer.id,
+                "drawer_name": drawer.id if drawer else '',
                 "turn": room.turn_count,
                 "word": '-'*len(room.current_word),
             })
@@ -206,9 +205,32 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def get_players_in_order(self):
         return await sync_to_async(lambda: list(Player.objects.filter(room_id=self.room_id).order_by("turn_order")))()
+
     async def get_scoreboard(self):
         return await sync_to_async(lambda: list(Player.objects.filter(room_id=self.room_id).order_by("score")))()
 
-    async def set_next_drawer(self):
-        room = await self.get_room()
-        await sync_to_async(room.set_next_drawer)()
+    async def reset_player_scores(self):
+        players = await self.get_players_in_order()
+        for player in players:
+            player.score = 0
+
+        await sync_to_async(lambda:Player.objects.bulk_update(players, ['score']))()
+        
+    async def set_next_drawer(self, room):
+        players = await self.get_players_in_order()
+        drawer = await sync_to_async(lambda: room.current_drawer)()
+        
+        if players:
+            if drawer and drawer in players:
+                index = players.index(drawer)
+                next_index = (index + 1) % len(players)
+                new_drawer = players[next_index]
+            else:
+                new_drawer = players[0]
+        else:
+            new_drawer = None
+        
+        room.current_drawer = new_drawer
+        await sync_to_async(room.save)()
+        
+        await sync_to_async(lambda: print(room.current_drawer))() #<<<<<<<<<<<<<<<<<<<=
