@@ -20,7 +20,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         
         await self.channel_layer.group_send(
             self.room_group_name,
-            {'type': 'player_joined'}
+            {'type': 'player_joined', 'id': self.player_id}
         )
         
         await self.update_leaderboard()
@@ -33,7 +33,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         
         await self.channel_layer.group_send(
             self.room_group_name,
-            {'type': 'player_left'}
+            {'type': 'player_left', 'id': self.player_id}
         )
         await self.update_leaderboard()
 
@@ -51,29 +51,29 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def handle_guess(self, guess):
         room = await self.get_room()
         player = await self.get_player()
-        guess_type = 'wrong_guess'
+        drawer = await sync_to_async(lambda: room.current_drawer)()
         
-        if room and guess.lower() == room.current_word.lower():
-            await self.update_scores()
-            guess_type = 'correct_guess'
+        correct = False
+        
+        
+        if room and player.id != drawer.id and guess.lower() == room.current_word.lower():
+            await self.update_scores(room, player, drawer)
+            correct = True
             
-        await self.send(
-            json.dumps({
-                'type': guess_type,
-                'player_id': player.id,
-                'player_name': player.name,
+        await self.channel_layer.group_send(
+            self.room_group_name,
+                {
+                'type': 'message',
+                'name': player.name,
                 'guess': guess,
+                'correct': correct
+                
             })
-        )
 
-    async def update_scores(self):
-        room = await self.get_room()
-        player = await self.get_player()
-        
+    async def update_scores(self, room, player, drawer):
         player.score = F('score') + room.score_pool
         await sync_to_async(player.save)()
-        
-        drawer = room.current_drawer
+
         drawer.score = F('score') + (room.score_pool // room.current_players_count)
         await sync_to_async(drawer.save)()
         
@@ -137,11 +137,21 @@ class GameConsumer(AsyncWebsocketConsumer):
             )
 
     # Player Events
+    async def  message(self, event):
+        await self.send(
+            json.dumps({
+                'type': 'message',
+                'guess': event['guess'],
+                'name': event['name'],
+                'correct': event['correct']}
+                
+                ))
+
     async def player_joined(self, event):
-        await self.send(json.dumps({'type': 'player_joined', 'id': self.player_id}))
+        await self.send(json.dumps({'type': 'player_joined', 'id': event['id']}))
 
     async def player_left(self, event):
-        await self.send(json.dumps({'type': 'player_left', 'id': self.player_id}))
+        await self.send(json.dumps({'type': 'player_left', 'id': event['id']}))
 
     async def leaderboard_update(self, event):
         await self.send(json.dumps({'type': 'leaderboard_update', 'leaderboard': event['leaderboard']}))
