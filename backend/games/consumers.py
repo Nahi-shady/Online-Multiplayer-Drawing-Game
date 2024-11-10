@@ -41,21 +41,20 @@ class GameConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         message_type = data.get('type')
         
+        room = await self.get_room()
+        player = await self.get_player()
+        
         if message_type == "guess":
-            await self.handle_guess(data.get('guess'))
-        elif message_type == "next_turn":
-            await self.start_next_turn()
+            await self.handle_guess(room, player, data.get('guess'))
+        elif message_type == "new_game":
+            await self.new_game(room)
         else:
             await self.send(json.dumps({"error": "Unknown message type"}))
 
-    async def handle_guess(self, guess):
-        room = await self.get_room()
-        player = await self.get_player()
+    async def handle_guess(self,room, player, guess):
         drawer = await sync_to_async(lambda: room.current_drawer)()
-        
-        correct = False
-        
-        
+    
+        correct = False    
         if room and player.id != drawer.id and guess.lower() == room.current_word.lower():
             await self.update_scores(room, player, drawer)
             correct = True
@@ -96,45 +95,71 @@ class GameConsumer(AsyncWebsocketConsumer):
             }
         )
 
-    async def start_next_turn(self):
-        await self.set_next_drawer()
-        room = await self.get_room()
+    async def new_game(self, room):
+        room.turn_count = 0
+        await sync_to_async(room.save)()
+
+        await self.start_next_turn()
         
+    async def start_next_turn(self):
+        room = await self.get_room()
+        if room.turn_count >= 5:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": 'game_over'
+                })
+            return
+
+        await self.set_next_drawer()
+        drawer = await sync_to_async(lambda: room.current_drawer)()
+        
+        room.turn_count = F('turn_count') + 1
         room.score_pool = 450
         await sync_to_async(room.save)()
-        
+
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 "type": "new_turn",
-                "drawer_name": room.current_drawer.name,
-                "word_length": len(room.current_word),
-            }
-        )
-        await self.start_turn_timer()
+                "drawer_name": drawer.id,
+                "turn": room.turn_count,
+                "word": '-'*len(room.current_word),
+            })
+        await self.start_turn_timer(room)
 
-    async def start_turn_timer(self):
+    async def start_turn_timer(self, room):
         for remaining in range(45, 0, -1):
             await asyncio.sleep(1)
-            
-            if remaining in {25, 10}:
-                await self.provide_hint()
-                
-            if remaining == 0:
-                await self.start_next_turn()
 
-    async def provide_hint(self):
-        room = await self.get_room()
+            if remaining == 30:
+                await self.provide_hint(-1)
+            if remaining == 15:
+                await self.provide_hint(1)
+
+            # if remaining == 0:
+            #     await self.start_next_turn()
         
-        if room.hint_letters < 2:
-            room.hint_letters += 1
-            hint = room.current_word[:room.hint_letters]
-            await sync_to_async(room.save)()
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "timeout",
+            }
+        )
+        await self.start_next_turn()
+
+    async def provide_hint(self, idx):
+        room = await self.get_room()
+        hint = ['-']*len(room.current_word)
+
+        hint[-1] = room.current_word[-1]
+        if idx == 1:
+            hint[1] = room.current_word[1]
             
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {"type": "hint_update", "hint": hint}
-            )
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {"type": "hint_update", "hint": ''.join(hint)}
+        )
 
     # Player Events
     async def  message(self, event):
@@ -160,7 +185,17 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.send(json.dumps({'type': 'hint_update', 'hint': event['hint']}))
 
     async def new_turn(self, event):
-        await self.send(json.dumps({"type": "new_turn", "drawer_name": event["drawer_name"]}))
+        await self.send(json.dumps({'type': 'new_turn'}))
+        
+    async def timeout(self, event):
+        room = await self.get_room()
+        word = room.current_word
+        await self.send(json.dumps({"type": "timeout", "word": word}))
+
+    async def game_over(self, event):
+        players = await self.get_scoreboard()
+        await self.send(json.dumps({"type": "game_over", "score_board": [{"name": player.name, "score":player.score} for player in players]}))
+        
 
     # Helper Methods
     async def get_player(self):
@@ -171,6 +206,8 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def get_players_in_order(self):
         return await sync_to_async(lambda: list(Player.objects.filter(room_id=self.room_id).order_by("turn_order")))()
+    async def get_scoreboard(self):
+        return await sync_to_async(lambda: list(Player.objects.filter(room_id=self.room_id).order_by("score")))()
 
     async def set_next_drawer(self):
         room = await self.get_room()
