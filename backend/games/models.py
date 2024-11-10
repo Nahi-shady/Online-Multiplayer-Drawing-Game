@@ -10,6 +10,7 @@ class Room(models.Model):
     current_players_count = models.IntegerField(default=0)
     current_word = models.CharField(default='illustra', blank=True, null=False)
     score_pool = models.IntegerField(default=450, blank=True, null=False)
+    turn_count = models.IntegerField(max_length=2, blank=True, null=False)
     
     max_players = models.IntegerField(default=14)
     is_active = models.BooleanField(default=True)
