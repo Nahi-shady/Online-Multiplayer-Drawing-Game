@@ -104,30 +104,30 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def start_next_turn(self):
         room = await self.get_room()
-        if room.turn_count >= 5:
+        if int(room.turn_count) >= 5:
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {"type": 'game_over'})
             return
         
         await self.set_next_drawer(room)
-        drawer = await sync_to_async(lambda: room.current_drawer)()
           
         room.turn_count = F('turn_count') + 1
         room.score_pool = 450
         await sync_to_async(room.save)()
 
+        drawer = await sync_to_async(lambda: room.current_drawer)()
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 "type": "new_turn",
-                "drawer_name": drawer.id if drawer else '',
+                "drawer_name": drawer.name if drawer else '',
                 "turn": room.turn_count,
                 "word": '-'*len(room.current_word),
             })
-        await self.start_turn_timer(room)
+        await self.start_turn_timer()
 
-    async def start_turn_timer(self, room):
+    async def start_turn_timer(self):
         for remaining in range(45, 0, -1):
             await asyncio.sleep(1)
 
