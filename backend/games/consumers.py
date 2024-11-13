@@ -6,6 +6,10 @@ from .models import Room, Player
 import asyncio
 
 class GameConsumer(AsyncWebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.turn_task = None
+    
     async def connect(self):
         self.player_id = int(self.scope['url_route']['kwargs']['player_id'])
         self.room_id = int(self.scope['url_route']['kwargs']['room_id'])
@@ -26,16 +30,13 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.update_leaderboard()
 
     async def disconnect(self, close_code):
-        player = await self.get_player
-        room = await self.get_room
+        player = await self.get_player()
+        room = await self.get_room()
         drawer = await sync_to_async(lambda: room.current_drawer)()
-        
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
         )
-        if player == drawer:
-            self.turn_task.cancel()
         
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -43,6 +44,13 @@ class GameConsumer(AsyncWebsocketConsumer):
         )
         await self.update_leaderboard()
 
+        print("-------------------------")
+        await sync_to_async(lambda: print(player))()
+        await sync_to_async(lambda: print(drawer))()
+        print("------------------------")
+        if player == drawer and self.turn_task:
+            self.turn_task.cancel()
+            
     async def receive(self, text_data):
         data = json.loads(text_data)
         message_type = data.get('type')
@@ -136,7 +144,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def start_turn_timer(self):
         try:
-            for remaining in range(20, 0, -1):
+            for remaining in range(60, 0, -1):
                 await asyncio.sleep(1)
 
                 if remaining == 10:
@@ -151,8 +159,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {"type": "message",
-                 "message": "Drawer disconnected, skipping turn!"}
-            )
+                 "message": "Drawer disconnected, skipping turn!"})
             
         await self.start_next_turn()
 
