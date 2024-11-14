@@ -38,19 +38,24 @@ class GameConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
         
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {'type': 'player_left', 'id': self.player_id}
-        )
+        if player == drawer:
+            if self.turn_task:
+                self.turn_task.cancel()
+                self.turn_task = None
+            else:
+                await self.channel_layer.group_send(
+                self.room_group_name,
+                {"type": "message",
+                 "message": "Drawer disconnected, skipping turn!"})
+                
+                await self.start_next_turn()
+        else:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {'type': 'player_left', 'id': self.player_id})
+            
         await self.update_leaderboard()
 
-        print("-------------------------")
-        await sync_to_async(lambda: print(player))()
-        await sync_to_async(lambda: print(drawer))()
-        print("------------------------")
-        if player == drawer and self.turn_task:
-            self.turn_task.cancel()
-            
     async def receive(self, text_data):
         data = json.loads(text_data)
         message_type = data.get('type')
@@ -135,13 +140,14 @@ class GameConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             {
                 "type": "new_turn",
-                "drawer_name": drawer.name if drawer else '',
+                "drawer": drawer.name if drawer else '',
                 "turn": room.turn_count,
                 "word": '-'*len(room.current_word),
             })
         
-        self.turn_task = asyncio.create_task(self.start_turn_timer())   #Create async task
+        self.turn_task = asyncio.create_task(self.start_turn_timer())   #Create async task to start turns
 
+    # handle turn countdown. if drawer turn task gets cancelled, stop countdown and start a new turn
     async def start_turn_timer(self):
         try:
             for remaining in range(60, 0, -1):
@@ -152,17 +158,19 @@ class GameConsumer(AsyncWebsocketConsumer):
                 if remaining == 5:
                     await self.provide_hint(1)
             
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {"type": "timeout",})
-        except asyncio.CancelledError():
+        except asyncio.CancelledError: 
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {"type": "message",
                  "message": "Drawer disconnected, skipping turn!"})
+        finally:
+            self.turn_task = None
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {"type": "timeout",})
             
-        await self.start_next_turn()
-
+            await self.start_next_turn()
+        
     async def provide_hint(self, idx):
         room = await self.get_room()
         hint = ['-']*len(room.current_word)
@@ -206,7 +214,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.send(json.dumps({'type': 'hint_update', 'hint': event['hint']}))
 
     async def new_turn(self, event):
-        await self.send(json.dumps({'type': 'new_turn'}))
+        await self.send(json.dumps({"type": "new_turn"}))
         
     async def timeout(self, event):
         room = await self.get_room()
