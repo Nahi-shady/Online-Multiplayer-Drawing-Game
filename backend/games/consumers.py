@@ -1,9 +1,10 @@
 import json
 from asgiref.sync import sync_to_async
+import asyncio
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.exceptions import DenyConnection
 from django.db.models import F
 from .models import Room, Player
-import asyncio
 
 room_task = {}
 
@@ -11,6 +12,11 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.player_id = int(self.scope['url_route']['kwargs']['player_id'])
         self.room_id = int(self.scope['url_route']['kwargs']['room_id'])
+        
+        player, room = await self.get_player(), await self.get_room()
+        if not player or not room:
+            raise DenyConnection("player or room doens't exist")
+        
         self.room_group_name = f'room_{self.room_id}'
         
         await self.channel_layer.group_add(
@@ -30,6 +36,9 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         player = await self.get_player()
         room = await self.get_room()
+        if not player or not room:
+            raise DenyConnection("player or room doens't exist")
+        
         drawer = await sync_to_async(lambda: room.current_drawer)()
         await self.channel_layer.group_discard(
             self.room_group_name,
@@ -40,11 +49,15 @@ class GameConsumer(AsyncWebsocketConsumer):
             if self.room_id in room_task:
                 room_task[self.room_id].cancel()
                 del room_task[self.room_id]
+                await self.channel_layer.group_send(
+                self.room_group_name,
+                {"type": "message",
+                 "message": "Drawer disconnected"})
             else:
                 await self.channel_layer.group_send(
                 self.room_group_name,
                 {"type": "message",
-                 "message": "skipping turn!"})
+                 "message": "not handled drawer leave!"})
                 
                 await self.start_next_turn()
         else:
@@ -52,6 +65,8 @@ class GameConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 {'type': 'player_left', 'id': self.player_id})
             
+        await self.remove_player(player, room)
+        
         await self.update_leaderboard()
 
     async def receive(self, text_data):
@@ -60,6 +75,8 @@ class GameConsumer(AsyncWebsocketConsumer):
         
         room = await self.get_room()
         player = await self.get_player()
+        if not player or not room:
+            raise DenyConnection("player or room doens't exist")
         
         if message_type == "guess":
             await self.handle_guess(room, player, data.get('guess'))
@@ -112,6 +129,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             }
         )
 
+    # reset room values (i.e turn_count and player scores) and start a new game
     async def new_game(self, room):
         if self.room_id in room_task:
             await self.channel_layer.group_send(
@@ -126,9 +144,13 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         await self.reset_player_scores()
         await self.start_next_turn()
-
+        
+    # update room stats (i.e drawer, turn_count, score_pool) and create async time_count task
     async def start_next_turn(self):
         room = await self.get_room()
+        if not room:
+            raise DenyConnection("room doens't exist")
+        
         if int(room.turn_count) >= 5:
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -164,22 +186,23 @@ class GameConsumer(AsyncWebsocketConsumer):
                 if remaining == 5:
                     await self.provide_hint(1)
             
-        except asyncio.CancelledError: 
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {"type": "message",
-                 "message": "Drawer disconnected"})
-        finally:
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {"type": "timeout",})
+        except asyncio.CancelledError:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {"type": "message",
+                 "message": "skipping turn!"})
             
         await self.start_next_turn()
         
     async def provide_hint(self, idx):
         room = await self.get_room()
+        if not room:
+            raise DenyConnection("room doens't exist")
+        
         hint = ['-']*len(room.current_word)
-
         hint[-1] = room.current_word[-1]
         if idx == 1:
             hint[1] = room.current_word[1]
@@ -223,6 +246,9 @@ class GameConsumer(AsyncWebsocketConsumer):
         
     async def timeout(self, event):
         room = await self.get_room()
+        if not room:
+            raise DenyConnection("room doens't exist")
+        
         word = room.current_word
         await self.send(json.dumps({"type": "timeout", "word": word}))
 
@@ -233,11 +259,17 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     # Helper Methods
     async def get_player(self):
-        return await sync_to_async(Player.objects.get)(id=self.player_id)
+        try:
+            return await sync_to_async(Player.objects.get)(id=self.player_id)
+        except:
+            return None
 
-    async def get_room(self):
-        return await sync_to_async(Room.objects.get)(id=self.room_id)
-
+    async def get_room(self):  
+        try:
+            return await sync_to_async(Room.objects.get)(id=self.room_id)
+        except:
+            return None
+        
     async def get_players_in_order(self):
         return await sync_to_async(lambda: list(Player.objects.filter(room_id=self.room_id).order_by("turn_order")))()
 
@@ -269,3 +301,10 @@ class GameConsumer(AsyncWebsocketConsumer):
         await sync_to_async(room.save)()
         
         await sync_to_async(lambda: print(room.current_drawer))() #<<<<<<<<<<<<<<<<<<<=
+        
+    async def remove_player(self, player, room):
+        room.current_players_count = F('current_players_count') - 1
+        await sync_to_async(room.save)()
+        
+        await sync_to_async(player.delete)()
+        
