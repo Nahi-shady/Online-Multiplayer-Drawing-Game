@@ -71,38 +71,3 @@ class JoinRoomView(APIView):
             
         player_serializer = PlayerSerializer(player)
         return Response(player_serializer.data, status=status.HTTP_200_OK)
-
-class LeaveRoomView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
-    
-    def post(self, request):
-        player_id = request.data.get('player_id')
-        if not player_id:
-            return Response({"detail": "Player player_id is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        player = get_object_or_404(Player, id=player_id)
-        room = player.room
-
-            
-        with transaction.atomic():
-            if room.current_drawer == player:
-                if room.current_players_count <= 1:
-                    room.current_drawer = None
-                else:
-                    room.set_next_drawer()
-                    
-            player.delete()
-
-            room.current_players_count -= 1
-            if room.current_players_count <= 0:
-                room.is_active = False  # Deactivate room if no players are left
-            room.save()
-            
-        active_players = room.players.filter(is_active=True).order_by('turn_order')
-        for i, player in enumerate(active_players):
-            player.turn_order = i
-
-        Player.objects.bulk_update(active_players, ['turn_order'])
-    
-        return Response({"detail": "Left room successfully."}, status=status.HTTP_200_OK)
