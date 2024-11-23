@@ -18,7 +18,7 @@ class CreateRoomView(APIView):
         if not name:
             return Response({"detail": "Player name is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        is_private = request.data.get('is_private', False)
+        is_private = request.data.get('is_private', True)
         max_players = request.data.get('max_players', 14)
 
         if max_players > 14:
@@ -30,10 +30,9 @@ class CreateRoomView(APIView):
             Room.objects.create_public_room(max_players=max_players)
         )
         
-        player = Player.objects.create(name=name, room=room, turn_order=room.current_players_count)
+        player = Player.objects.create(name=name, room=room)
         room.current_players_count += 1
         room.save()
-        room.set_next_drawer()
         
         serializer = RoomSerializer(room)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -64,7 +63,7 @@ class JoinRoomView(APIView):
                 return Response({"detail": "No public rooms available."}, status=status.HTTP_404_NOT_FOUND)
         
         with transaction.atomic():
-            player = Player.objects.create(name=name, room=room, turn_order=room.current_players_count)
+            player = Player.objects.create(name=name, room=room)
             room.current_players_count += 1
 
             room.save()
