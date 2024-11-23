@@ -28,12 +28,12 @@ class Room(models.Model):
 class Player(models.Model):
     name = models.CharField(max_length=15, blank=False, null=False)
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='players')
-    turn_order = models.IntegerField(default=0)  # Player's turn order within the room
     is_active = models.BooleanField(default=True)
     score = models.IntegerField(default=0)
+    joined_at = models.DateField(auto_now_add=True)
 
     def to_dict(self):
-        return {'id': self.id, 'name': self.name, 'score': self.score, 'turn': self.turn_order}
+        return {'id': self.id, 'name': self.name, 'score': self.score}
     
     def __str__(self):
         return f"{self.name} in Room {self.room.id}"
