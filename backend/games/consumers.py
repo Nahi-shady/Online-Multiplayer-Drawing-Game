@@ -93,7 +93,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         drawer = await sync_to_async(lambda: room.current_drawer)()
     
         correct = False    
-        if room and player.id != drawer.id and guess.lower() == room.current_word.lower():
+        if room and player.id != drawer.id and not player.guessed and guess.lower() == room.current_word.lower():
             await self.update_scores(room, player, drawer)
             correct = True
             
@@ -109,6 +109,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def update_scores(self, room, player, drawer):
         player.score = F('score') + room.score_pool
+        player.guessed = True
         await sync_to_async(player.save)()
 
         drawer.score = F('score') + (room.score_pool // room.current_players_count)
@@ -185,6 +186,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
 
         await self.set_next_drawer(room)
+        await self.reset_players_guess_status()
           
         room.turn_count = F('turn_count') + 1
         room.score_pool = 450
@@ -225,7 +227,6 @@ class GameConsumer(AsyncWebsocketConsumer):
                 {"type": "message",
                  "message": "skipping turn!"})
         
-        print(room_task)
         await self.start_next_turn()
         
     async def provide_hint(self, idx):
@@ -313,6 +314,13 @@ class GameConsumer(AsyncWebsocketConsumer):
             player.score = 0
 
         await sync_to_async(lambda:Player.objects.bulk_update(players, ['score']))()
+        
+    async def reset_players_guess_status(self):
+        players = await self.get_players_in_order()
+        for player in players:
+            player.guessed = False
+            
+        await sync_to_async(lambda:Player.objects.bulk_update(players, ['guessed']))()
         
     async def set_next_drawer(self, room):
         players = await self.get_players_in_order()
