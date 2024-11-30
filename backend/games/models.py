@@ -29,8 +29,11 @@ class Room(models.Model):
 class Player(models.Model):
     name = models.CharField(max_length=15, blank=False, null=False)
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='players')
-    is_active = models.BooleanField(default=True)
+    
     score = models.IntegerField(default=0)
+    guessed = models.BooleanField(default=False)
+    
+    is_active = models.BooleanField(default=True)
     joined_at = models.DateField(auto_now_add=True)
 
     def to_dict(self):
