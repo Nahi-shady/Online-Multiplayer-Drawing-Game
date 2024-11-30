@@ -13,9 +13,11 @@ class GameConsumer(AsyncWebsocketConsumer):
         self.player_id = int(self.scope['url_route']['kwargs']['player_id'])
         self.room_id = int(self.scope['url_route']['kwargs']['room_id'])
         
-        player, room = await self.get_player(), await self.get_room()
+        room = await self.get_room()
+        player = await self.get_player()
         if not player or not room:
             raise DenyConnection("player or room doens't exist")
+            return
         
         self.room_group_name = f'room_{self.room_id}'
         
@@ -38,6 +40,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         room = await self.get_room()
         if not player or not room:
             raise DenyConnection("player or room doens't exist")
+            return
         
         drawer = await sync_to_async(lambda: room.current_drawer)()
         await self.channel_layer.group_discard(
@@ -77,6 +80,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         player = await self.get_player()
         if not player or not room:
             raise DenyConnection("player or room doens't exist")
+            return
         
         if message_type == "guess":
             await self.handle_guess(room, player, data.get('guess'))
@@ -111,8 +115,25 @@ class GameConsumer(AsyncWebsocketConsumer):
         await sync_to_async(drawer.save)()
         
         room.score_pool = F('score_pool') - 33
+        room.guess_count = F('guess_count') + 1
         await sync_to_async(room.save)()
+        await sync_to_async(room.refresh_from_db)()
         
+        if room.guess_count >= room.current_players_count:
+            if self.room_id in room_task:
+                room_task[self.room_id].cancel()
+                del room_task[self.room_id]
+                await self.channel_layer.group_send(
+                self.room_group_name,
+                {"type": "message",
+                 "message": "All guessed"})
+            else:
+                await self.channel_layer.group_send(
+                self.room_group_name,
+                {"type": "message",
+                 "message": "all guess not handled"})
+                await self.start_next_turn()
+                
         await self.update_leaderboard()
 
     async def update_leaderboard(self):
@@ -135,7 +156,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {"type": 'message',
-                 'message': 'game is already started'}
+                 'message': 'game has already started'}
             )
             return
         
@@ -150,18 +171,27 @@ class GameConsumer(AsyncWebsocketConsumer):
         room = await self.get_room()
         if not room:
             raise DenyConnection("room doens't exist")
+            return
         
-        if int(room.turn_count) >= 5:
+        if room.turn_count >= 5:
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {"type": 'game_over'})
+            
+            # remove turn from room_task memory when turn expires
+            if self.room_id in room_task:
+                room_task[self.room_id].cancel()
+                del room_task[self.room_id]
             return
 
         await self.set_next_drawer(room)
           
         room.turn_count = F('turn_count') + 1
         room.score_pool = 450
+        room.guess_count = 0
         await sync_to_async(room.save)()
+        await sync_to_async(room.refresh_from_db)()
+        
 
         drawer = await sync_to_async(lambda: room.current_drawer)()
         await self.channel_layer.group_send(
@@ -194,7 +224,8 @@ class GameConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 {"type": "message",
                  "message": "skipping turn!"})
-            
+        
+        print(room_task)
         await self.start_next_turn()
         
     async def provide_hint(self, idx):
@@ -242,7 +273,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.send(json.dumps({'type': 'hint_update', 'hint': event['hint']}))
 
     async def new_turn(self, event):
-        await self.send(json.dumps({"type": "new_turn"}))
+        await self.send(json.dumps({"type": "new_turn", "turn": event['turn']}))
         
     async def timeout(self, event):
         room = await self.get_room()
@@ -271,7 +302,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             return None
         
     async def get_players_in_order(self):
-        return await sync_to_async(lambda: list(Player.objects.filter(room_id=self.room_id).order_by("turn_order")))()
+        return await sync_to_async(lambda: list(Player.objects.filter(room_id=self.room_id).order_by("joined_at")))()
 
     async def get_scoreboard(self):
         return await sync_to_async(lambda: list(Player.objects.filter(room_id=self.room_id).order_by("score")))()
