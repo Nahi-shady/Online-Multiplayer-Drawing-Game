@@ -93,7 +93,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         drawer = await sync_to_async(lambda: room.current_drawer)()
     
         correct = False    
-        if room and player.id != drawer.id and not player.guessed and guess.lower() == room.current_word.lower():
+        if room.on and player.id != drawer.id and not player.guessed and guess.lower() == room.current_word.lower():
             await self.update_scores(room, player, drawer)
             correct = True
             
@@ -162,6 +162,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
         
         room.turn_count = 0
+        room.on = True
         await sync_to_async(room.save)()
 
         await self.reset_player_scores()
@@ -174,10 +175,14 @@ class GameConsumer(AsyncWebsocketConsumer):
             raise DenyConnection("room doens't exist")
             return
         
+        # end game if final turn is played
         if room.turn_count >= 5:
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {"type": 'game_over'})
+            
+            room.on = False
+            await sync_to_async(room.save)()
             
             # remove turn from room_task memory when turn expires
             if self.room_id in room_task:
