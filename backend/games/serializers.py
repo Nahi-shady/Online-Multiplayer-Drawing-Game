@@ -12,4 +12,4 @@ class RoomSerializer(serializers.ModelSerializer):
 class PlayerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Player
-        fields = ['id', 'name', 'room', 'turn_order', 'is_active', 'score']
+        fields = ['id', 'name', 'room', 'is_active', 'score']
