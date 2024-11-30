@@ -15,6 +15,7 @@ class Room(models.Model):
     score_pool = models.IntegerField(default=450, blank=True, null=False)
     turn_count = models.IntegerField(default=0, blank=False, null=False)
     guess_count = models.IntegerField(default=0, blank=False, null=False)
+    on = models.BooleanField(default=False)
     
     max_players = models.IntegerField(default=14)
     is_active = models.BooleanField(default=True)
