@@ -153,3 +153,17 @@ class CanvasManager {
         this.ctx.stroke();
     }
 }
+
+// Function to fetch CSRF token
+async function fetchCsrfToken() {
+    try {
+        const response = await fetch("http://127.0.0.1:8000/games/get-csrf-token/");
+        if (!response.ok) throw new Error(`Failed to fetch CSRF token: ${response.status}`);
+        const data = await response.json();
+        return data.csrfToken;
+    } catch (error) {
+        console.error("Error fetching CSRF token:", error);
+        throw error; // Rethrow to ensure proper handling
+    }
+}
+
