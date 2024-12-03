@@ -167,3 +167,38 @@ async function fetchCsrfToken() {
     }
 }
 
+// Function to join a room
+async function joinRoom(csrfToken, playerName) {
+    const url = "http://127.0.0.1:8000/games/join-room";
+    const data = { name: playerName };
+
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken,
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) throw new Error(`Failed to join room: ${response.status}`);
+        const responseData = await response.json();
+        return { playerId: responseData.id, roomId: responseData.room };
+    } catch (error) {
+        console.error("Error joining room:", error);
+        throw error;
+    }
+}
+
+// Function to initialize WebSocket and Canvas Managers
+function initializeGame(roomId, playerId) {
+    const wsUrl = `ws://localhost:8000/ws/game/${roomId}/${playerId}/`;
+    const wsManager = new WebSocketManager(wsUrl, (data) => {
+        canvasManager.renderIncomingDrawing(data);
+    });
+
+    const canvasManager = new CanvasManager("drawing-canvas", wsManager);
+    console.log("WebSocket and Canvas initialized for room:", roomId, "player:", playerId);
+}
+
