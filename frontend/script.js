@@ -202,3 +202,27 @@ function initializeGame(roomId, playerId) {
     console.log("WebSocket and Canvas initialized for room:", roomId, "player:", playerId);
 }
 
+// Main function to orchestrate the process
+async function main() {
+    try {
+        // Step 1: Fetch CSRF token
+        const csrfToken = await fetchCsrfToken();
+        console.log("CSRF Token fetched:", csrfToken);
+
+        // Step 2: Join a room
+        const { playerId, roomId } = await joinRoom(csrfToken, "slim");
+        console.log("Joined room successfully:", { playerId, roomId });
+
+        // Step 3: Initialize WebSocket and Canvas Managers
+        if (playerId && roomId) {
+            initializeGame(roomId, playerId);
+        } else {
+            console.error("Invalid playerId or roomId:", { playerId, roomId });
+        }
+    } catch (error) {
+        console.error("Error in main flow:", error);
+    }
+}
+
+// Execute the main function
+main();
