@@ -2,12 +2,23 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
+from rest_framework.decorators import api_view
 
 from .models import Room, Player
 from .serializers import RoomSerializer, PlayerSerializer
 
 from django.shortcuts import get_object_or_404
 from django.db import transaction
+from django.middleware.csrf import get_token
+
+
+class GetCsrfTokenView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        return Response({'csrfToken': get_token(request)})
+        
 
 class CreateRoomView(APIView):
     authentication_classes = []
