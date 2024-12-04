@@ -39,6 +39,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         player = await self.get_player()
         room = await self.get_room()
         if not player or not room:
+            print(self.player_id, self.room_id)
             raise DenyConnection("player or room doens't exist")
             return
         
@@ -86,6 +87,12 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self.handle_guess(room, player, data.get('guess'))
         elif message_type == "new_game":
             await self.new_game(room)
+        elif message_type == 'drawing':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {'type': 'drawing',
+                 'data': data}
+            )
         else:
             await self.send(json.dumps({"error": "Unknown message type"}))
 
@@ -279,7 +286,11 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.send(json.dumps({'type': 'hint_update', 'hint': event['hint']}))
 
     async def new_turn(self, event):
-        await self.send(json.dumps({"type": "new_turn", "turn": event['turn']}))
+        await self.send(
+            json.dumps({"type": "new_turn", 
+                        "turn": event['turn'],
+                        "drawer": event["drawer"], 
+                        "word": event["word"]}))
         
     async def timeout(self, event):
         room = await self.get_room()
@@ -293,6 +304,18 @@ class GameConsumer(AsyncWebsocketConsumer):
         players = await self.get_scoreboard()
         await self.send(json.dumps({"type": "game_over", "score_board": [{"name": player.name, "score":player.score} for player in players]}))
         
+    # drawing events
+    async def drawing(self, event):
+        data = event['data']
+        start = data.get('start')
+        end = data.get('end')
+        color = data.get('color')
+        thickness = data.get('thickness')
+        
+        await self.send(
+            json.dumps({'type': 'drawing', 'start': start,
+                        'end': end, 'color': color,
+                        'thickness': thickness}))
 
     # Helper Methods
     async def get_player(self):
@@ -344,11 +367,9 @@ class GameConsumer(AsyncWebsocketConsumer):
         room.current_drawer = new_drawer
         await sync_to_async(room.save)()
         
-        await sync_to_async(lambda: print(room.current_drawer))() #<<<<<<<<<<<<<<<<<<<=
-        
     async def remove_player(self, player, room):
         room.current_players_count = F('current_players_count') - 1
         await sync_to_async(room.save)()
         
         await sync_to_async(player.delete)()
-        
+        return
