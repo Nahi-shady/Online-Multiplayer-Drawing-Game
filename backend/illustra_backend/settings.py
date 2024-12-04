@@ -170,3 +170,6 @@ CHANNEL_LAYERS = {
         # },
     },
 }
+
+# allowed hosts for testing
+CORS_ALLOW_ALL_ORIGINS = True
