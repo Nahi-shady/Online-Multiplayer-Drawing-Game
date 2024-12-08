@@ -1,23 +1,78 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drawing Canvas</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Game Homepage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .form-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-container input, .form-container button {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        .form-container button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .form-container button:hover {
+            background: #45a049;
+        }
+    </style>
 </head>
 <body>
-    <div id="canvas-container">
-        <canvas id="drawing-canvas"></canvas>
-        <div id="controls">
-            <label for="color">Brush Color:</label>
-            <input type="color" id="color" value="#000000">
+    <h1>Welcome to the Drawing Game</h1>
+    <div class="form-container">
+        <label for="username">Enter your username:</label>
+        <input type="text" id="username" placeholder="Your username" required>
 
-            <label for="brush-size">Brush Size:</label>
-            <input type="range" id="brush-size" min="1" max="20" value="5">
-        </div>
+        <label for="room">Room Code (optional):</label>
+        <input type="text" id="room" placeholder="Enter a room code or leave blank to create a new one">
+
+        <button id="join">Join Game</button>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        document.getElementById('join').addEventListener('click', () => {
+            const username = document.getElementById('username').value.trim();
+            const room = document.getElementById('room').value.trim();
+
+            if (!username || username.length >= 15) {
+                alert('Length of username must be between 1 and 10');
+                return;
+            }
+
+            // Navigate to the game room
+            const roomParam = room ? `?room=${room}` : '';
+            window.location.href = `game_room.html?username=${encodeURIComponent(username)}${roomParam}`;
+        });
+    </script>
 </body>
 </html>
