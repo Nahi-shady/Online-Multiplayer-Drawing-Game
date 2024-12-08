@@ -93,6 +93,10 @@ class GameConsumer(AsyncWebsocketConsumer):
                 {'type': 'drawing',
                  'data': data}
             )
+        elif message_type == 'clear_canvas':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {'type': 'clear_canvas'})
         else:
             await self.send(json.dumps({"error": "Unknown message type"}))
 
@@ -303,6 +307,9 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def game_over(self, event):
         players = await self.get_scoreboard()
         await self.send(json.dumps({"type": "game_over", "score_board": [{"name": player.name, "score":player.score} for player in players]}))
+
+    async def clear_canvas(self, event):
+        await self.send(json.dumps({"type": "clear_canvas"}))
         
     # drawing events
     async def drawing(self, event):
@@ -316,7 +323,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             json.dumps({'type': 'drawing', 'start': start,
                         'end': end, 'color': color,
                         'thickness': thickness}))
-
+   
     # Helper Methods
     async def get_player(self):
         try:
