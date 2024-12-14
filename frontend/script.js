@@ -42,6 +42,10 @@ async function joinRoom(csrfToken, playerName) {
 // WebSocket Manager Class
 class WebSocketManager {
     constructor(url, canvasMessageHandler, chatMessageHandler) {
+        this.drawer_name = null;
+        this.current_word = null;
+        this.turn_count = null;
+
         this.url = url;
         this.canvasMessageHandler = canvasMessageHandler;
         this.chatMessageHandler = chatMessageHandler;
@@ -56,6 +60,20 @@ class WebSocketManager {
         this.socket.onerror = this.onError.bind(this);
     }
 
+    updateHeader() {
+        // Update drawer name
+        const drawerNameElement = document.getElementById("drawer-name");
+        drawerNameElement.textContent = this.drawer_name || "Waiting...";
+
+        // Update current word (hidden or hints)
+        const wordElement = document.getElementById("word");
+        wordElement.textContent = this.current_word || "_ _ _ _";
+
+        // Update turn count
+        const counterElement = document.getElementById("counter");
+        counterElement.textContent = this.turn_count ? `Turn: ${this.turn_count}` : "";
+    }
+
     onMessage(event) {
         try {
             const data = JSON.parse(event.data);
@@ -64,6 +82,16 @@ class WebSocketManager {
             }
             else if (data.type === "guess" || data.type === "player_joined" || data.type === "player_left") {
                 this.chatMessageHandler(data);
+            }
+            else if (data.type === "new_turn") {
+                this.drawer_name = data.name;
+                this.turn_count = data.turn;
+                this.current_word = data.word;
+                this.updateHeader();
+            }
+            else if (data.type === "hint_update") {
+                this.current_word = data.hint;
+                this.updateHeader();
             }
             else if (data.type === "leaderboard_update") {
                 const leaderboardList = document.getElementById("leaderboard-list");
@@ -188,7 +216,7 @@ class CanvasManager {
     }
 
     draw(e) {
-        if (!this.drawing) return;
+        if (!this.drawing || this.wsManager.drawer_name === username) return;
 
         const currentX = e.offsetX;
         const currentY = e.offsetY;
@@ -207,7 +235,7 @@ class CanvasManager {
     }
 
     touchDraw(e) {
-        if (!this.drawing) return;
+        if (!this.drawing || this.wsManager.drawer_name === username) return;
         e.preventDefault(); // Prevent scrolling or zooming
 
         const { x: currentX, y: currentY } = this.normalizeTouchEvent(e);
@@ -329,7 +357,6 @@ async function initializeGame(playerName) {
         const { id: playerId, room: roomId } = await joinRoom(csrfToken, playerName);
         const wsUrl = `${WS_BASE_URL}${roomId}/${playerId}/`;
 
-        
         console.log("Joined room:", roomId, "as player:", playerId);
 
         const wsManager = new WebSocketManager(wsUrl, (canvasdata) => canvasManager.websocketActions(canvasdata), (chatdata) => chatManager.displayMessage(chatdata));
@@ -338,7 +365,6 @@ async function initializeGame(playerName) {
     } catch (error) {
         console.error("Error initializing game: ", error);
     }
-
 }
 
 // Start the game
