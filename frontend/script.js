@@ -118,7 +118,6 @@ class CanvasManager {
         this.setupEventListeners();
     }
 
-
     initializeCanvas() {
         this.resizeCanvas();
         window.addEventListener("resize", this.resizeCanvas.bind(this));
@@ -222,7 +221,6 @@ class CanvasManager {
         };
         this.wsManager.sendMessage(drawingData);
 
-        // this.renderIncomingDrawing(drawingData);
         [this.lastX, this.lastY] = [currentX, currentY];
     }
 
@@ -279,7 +277,7 @@ class ChatManager {
         // Send message on Enter key
         this.chatInput.addEventListener("keydown", (event) => {
             if (event.key === "Enter") {
-                this.sendMessage();
+                this.sendMessage.bind(this);
             }
         });
     }
@@ -306,10 +304,15 @@ class ChatManager {
         messageElement.className = `chat-message`;
         if (message.type === "guess") {
             messageElement.textContent = `${message.name}: ${message.guess}`;
+            if (message.correct === true) {    
+                messageElement.className = 'green-text';
+            }
         } else if (message.type === "player_joined") {
             messageElement.textContent = `${message.id} joined room`;
+            messageElement.className = 'green-text';
         } else if (message.type === "player_left") {
             messageElement.textContent = `${message.id} left room`;
+            messageElement.className = 'red-text';
         }
         this.chatMessages.appendChild(messageElement);
 
@@ -324,15 +327,16 @@ async function initializeGame(playerName) {
     try {
         const csrfToken = await fetchCsrfToken();
         const { id: playerId, room: roomId } = await joinRoom(csrfToken, playerName);
+        const wsUrl = `${WS_BASE_URL}${roomId}/${playerId}/`;
 
+        
         console.log("Joined room:", roomId, "as player:", playerId);
 
-        const wsUrl = `${WS_BASE_URL}${roomId}/${playerId}/`;
-        const wsManager = new WebSocketManager(wsUrl, (cvdata) => canvasManager.websocketActions(cvdata), (chdata) => chatManager.displayMessage(chdata));
+        const wsManager = new WebSocketManager(wsUrl, (canvasdata) => canvasManager.websocketActions(canvasdata), (chatdata) => chatManager.displayMessage(chatdata));
         const canvasManager = new CanvasManager(wsManager);
         const chatManager = new ChatManager(wsManager);
     } catch (error) {
-        console.error("Error initializing game:", error);
+        console.error("Error initializing game: ", error);
     }
 
 }
