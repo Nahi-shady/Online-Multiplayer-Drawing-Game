@@ -71,7 +71,7 @@ class JoinRoomView(APIView):
         else:
             room = Room.objects.get_public_room()
             if not room:
-                return Response({"detail": "No public rooms available."}, status=status.HTTP_404_NOT_FOUND)
+                room = Room.objects.create_public_room()
         
         with transaction.atomic():
             player = Player.objects.create(name=name, room=room)
