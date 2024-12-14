@@ -1,100 +1,153 @@
+body {
+  text-align: center;
+  background-color: #172e4b;
+  margin: 0;
+  padding: 40px;
+  max-height: 100vh;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+/* common styles for the page */
+.green-text {
+  color: #50ff39;
+}
+
+.red-text {
+  color: rgb(228, 49, 49);
+}
+
 .container {
     display: grid;
     grid-template-columns: 1fr 2fr 1fr;
     gap: 20px;
   }
 
-  /* Common Styles for Sections */
-  .left, .middle, .right {
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
-    border-radius: 10px; /* Add rounded corners */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add subtle shadow */
-  }
+.header {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 20px;
+  background-color: #428bff;
+  border-radius: 30px 30px 0 0;
+  margin-bottom: 4px;
+}
 
-  /* Specific Styles for Each Section */
+/* Common Styles for Sections */
+.left, .middle, .right {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  box-shadow: 20px 35px 19px rgba(0, 0, 0, 1.1); /* Add subtle shadow */
+}
+
+/* Specific Styles for Each Section */
+.left {
+  background-color: #73aaac;
+  border-radius: 0 0 0 30px;
+}
+
+.middle {
+  background-color: #172e4b;
+}
+
+.right {
+  background-color: #73aaac;
+  border-radius: 0 0 30px 0;
+}
+
+
+/* Canvas Styling */
+#drawing-canvas {
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  
+  /* Maintain responsive sizing */
+  width: 100%;
+  height: auto;
+  max-width: 100%; /* Prevent exceeding container width */
+  aspect-ratio: 4 / 3; /* Keep aspect ratio consistent */
+}
+
+.canvas-container {
+  flex: 1; /* Take up available space in the middle section */
+  display: flex;
+  justify-content: center; /* Center canvas horizontally */
+  align-items: center; /* Center canvas vertically */
+}
+
+#controls {
+  flex: 0 0 auto; /* Let the controls take up the remaining space */
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+/* Chat Styling */
+#chat-messages {
+  height: 250px;
+  overflow-y: scroll;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 10px;
+  background-color: #e6eaee;
+}
+
+#chat-input {
+  width: 90%;
+  border: #fff;
+  padding: 5px;
+  border-radius: 5px 5px 0 0;
+}
+
+#send-message {
+  width: 90%;
+  padding: 5px 10px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 0 0 5px 5px;
+  cursor: pointer;
+}
+
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  body {
+    padding: 0;
+  }
+  .header {
+    gap: 5px;
+    margin-top: 5px;
+  }
+  .container {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto; /* Allow rows to adjust automatically */
+    grid-template-areas: 
+      "middle middle" 
+      "left right"; /* Arrange left and right sections side by side below middle */
+    gap: 5px;
+    }
+
   .left {
-    background-color: #f0f0f0;
+    grid-area: left;
+    padding: 0.5em;
   }
-
+  
   .middle {
-    background-color: #e0e0e0;
+    grid-area: middle;
+    padding: 0.5em;
   }
 
   .right {
-    background-color: #f0f0f0;
+    grid-area: right;
+    padding: 0 20px;
+
   }
-
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .container {
-      grid-template-columns: 1fr;
-      grid-template-rows: auto auto; /* Allow rows to adjust automatically */
-      grid-template-areas: 
-        "middle middle" 
-        "left right"; /* Arrange left and right sections side by side below middle */
-    }
-
-    .left {
-      grid-area: left;
-    }
-
-    .middle {
-      grid-area: middle;
-    }
-
-    .right {
-      grid-area: right;
-    }
+  .left, .middle, .right {
+    box-shadow: 0px 0px 0px;
   }
-
-  /* Canvas Styling */
-  #drawing-canvas {
-    background-color: #fff;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-
-    /* Maintain responsive sizing */
-    width: 100%;
-    height: auto;
-    max-width: 100%; /* Prevent exceeding container width */
-    aspect-ratio: 4 / 3; /* Keep aspect ratio consistent */
-  }
-
-  .canvas-container {
-    flex: 1; /* Take up available space in the middle section */
-    display: flex;
-    justify-content: center; /* Center canvas horizontally */
-    align-items: center; /* Center canvas vertically */
-  }
-
-  #controls {
-    flex: 0 0 auto; /* Let the controls take up the remaining space */
-    display: flex;
-    justify-content: space-between;
-    margin-top: 10px;
-  }
-
-  /* Chat Styling */
-  #chat-messages {
-    height: 300px;
-    overflow-y: scroll;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    padding: 10px;
-  }
-
-  #chat-input {
-    width: 80%;
-    padding: 5px;
-  }
-
-  #send-message {
-    padding: 5px 10px;
-    background-color: #007bff;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
+}
