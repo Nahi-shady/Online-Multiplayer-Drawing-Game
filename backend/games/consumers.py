@@ -88,26 +88,27 @@ class GameConsumer(AsyncWebsocketConsumer):
             raise DenyConnection("player or room doens't exist")
             return
         
+        drawer = await sync_to_async(lambda: room.current_drawer)()
         if message_type == "guess":
-            await self.handle_guess(room, player, data.get('guess'))
+            await self.handle_guess(room, player, drawer, data.get('guess'))
         elif message_type == "new_game":
             await self.new_game(room)
         elif message_type == 'drawing':
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {'type': 'drawing',
-                 'data': data}
+            if drawer.name == player.name:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {'type': 'drawing',
+                     'data': data}
             )
         elif message_type == 'clear_canvas':
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {'type': 'clear_canvas'})
+            if drawer.name == player.name:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {'type': 'clear_canvas'})
         else:
             await self.send(json.dumps({"error": "Unknown message type"}))
 
-    async def handle_guess(self,room, player, guess):
-        drawer = await sync_to_async(lambda: room.current_drawer)()
-    
+    async def handle_guess(self,room, player, drawer, guess):
         correct = False    
         if room.on and player.id != drawer.id and not player.guessed and guess.lower() == room.current_word.lower():
             await self.update_scores(room, player, drawer)
