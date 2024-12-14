@@ -39,7 +39,6 @@ class GameConsumer(AsyncWebsocketConsumer):
         player = await self.get_player()
         room = await self.get_room()
         if not player or not room:
-            print(self.player_id, self.room_id)
             raise DenyConnection("player or room doens't exist")
             return
         
@@ -70,6 +69,12 @@ class GameConsumer(AsyncWebsocketConsumer):
                 {'type': 'player_left', 'id': self.player_id})
             
         await self.remove_player(player, room)
+        
+        await sync_to_async(room.refresh_from_db)()
+        if room.current_players_count < 1:
+            print('----------------')
+            self.delete_room(room)
+            return
         
         await self.update_leaderboard()
 
@@ -379,4 +384,8 @@ class GameConsumer(AsyncWebsocketConsumer):
         await sync_to_async(room.save)()
         
         await sync_to_async(player.delete)()
+        return
+
+    async def delete_room(self, room):
+        await sync_to_async(room.delete)()
         return
