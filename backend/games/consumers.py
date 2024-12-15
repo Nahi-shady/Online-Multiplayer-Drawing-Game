@@ -23,15 +23,16 @@ class GameConsumer(AsyncWebsocketConsumer):
         
         await self.channel_layer.group_add(
             self.room_group_name,
-            self.channel_name
-        )
+            self.channel_name)
         
         await self.accept()
         
         await self.channel_layer.group_send(
             self.room_group_name,
-            {'type': 'player_joined', 'id': self.player_id}
-        )
+            {'type': 'player_joined', 'id': self.player_id})
+        
+        if room.current_players_count > 1 and not room.on:
+            await self.new_game(room)
         
         await self.update_leaderboard()
 
@@ -45,8 +46,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         drawer = await sync_to_async(lambda: room.current_drawer)()
         await self.channel_layer.group_discard(
             self.room_group_name,
-            self.channel_name
-        )
+            self.channel_name)
         
         if player == drawer:
             if self.room_id in room_task:
@@ -72,8 +72,10 @@ class GameConsumer(AsyncWebsocketConsumer):
         
         await sync_to_async(room.refresh_from_db)()
         if room.current_players_count < 1:
-            print('----------------')
-            self.delete_room(room)
+            room_task[self.room_id].cancel()
+            del room_task[self.room_id]
+            
+            await self.delete_room(room)
             return
         
         await self.update_leaderboard()
@@ -94,14 +96,13 @@ class GameConsumer(AsyncWebsocketConsumer):
         elif message_type == "new_game":
             await self.new_game(room)
         elif message_type == 'drawing':
-            if drawer.name == player.name:
+            if drawer and drawer.name == player.name:
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {'type': 'drawing',
-                     'data': data}
-            )
+                     'data': data})
         elif message_type == 'clear_canvas':
-            if drawer.name == player.name:
+            if drawer and drawer.name == player.name:
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {'type': 'clear_canvas'})
@@ -141,6 +142,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             if self.room_id in room_task:
                 room_task[self.room_id].cancel()
                 del room_task[self.room_id]
+                
                 await self.channel_layer.group_send(
                 self.room_group_name,
                 {"type": "message",
@@ -184,7 +186,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         await self.reset_player_scores()
         await self.start_next_turn()
-        
+
     # update room stats (i.e drawer, turn_count, score_pool) and create async time_count task
     async def start_next_turn(self):
         room = await self.get_room()
@@ -218,6 +220,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         
 
         drawer = await sync_to_async(lambda: room.current_drawer)()
+        print(drawer.name)
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -234,7 +237,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         try:
             for remaining in range(60, 0, -1):
                 await asyncio.sleep(1)
-
+                print(remaining)
                 if remaining == 10:
                     await self.provide_hint(-1)
                 if remaining == 5:
@@ -243,6 +246,11 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {"type": "timeout",})
+            
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {"type": "clear_canvas",})
+            
         except asyncio.CancelledError:
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -250,7 +258,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                  "message": "skipping turn!"})
         
         await self.start_next_turn()
-        
+
     async def provide_hint(self, idx):
         room = await self.get_room()
         if not room:
@@ -301,7 +309,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                         "turn": event['turn'],
                         "drawer": event["drawer"], 
                         "word": event["word"]}))
-        
+
     async def timeout(self, event):
         room = await self.get_room()
         if not room:
@@ -316,7 +324,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def clear_canvas(self, event):
         await self.send(json.dumps({"type": "clear_canvas"}))
-        
+
     # drawing events
     async def drawing(self, event):
         data = event['data']
@@ -329,7 +337,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             json.dumps({'type': 'drawing', 'start': start,
                         'end': end, 'color': color,
                         'thickness': thickness}))
-   
+
     # Helper Methods
     async def get_player(self):
         try:
@@ -337,12 +345,12 @@ class GameConsumer(AsyncWebsocketConsumer):
         except:
             return None
 
-    async def get_room(self):  
+    async def get_room(self):
         try:
             return await sync_to_async(Room.objects.get)(id=self.room_id)
         except:
             return None
-        
+
     async def get_players_in_order(self):
         return await sync_to_async(lambda: list(Player.objects.filter(room_id=self.room_id).order_by("joined_at")))()
 
@@ -355,14 +363,14 @@ class GameConsumer(AsyncWebsocketConsumer):
             player.score = 0
 
         await sync_to_async(lambda:Player.objects.bulk_update(players, ['score']))()
-        
+
     async def reset_players_guess_status(self):
         players = await self.get_players_in_order()
         for player in players:
             player.guessed = False
             
         await sync_to_async(lambda:Player.objects.bulk_update(players, ['guessed']))()
-        
+
     async def set_next_drawer(self, room):
         players = await self.get_players_in_order()
         drawer = await sync_to_async(lambda: room.current_drawer)()
@@ -379,7 +387,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         
         room.current_drawer = new_drawer
         await sync_to_async(room.save)()
-        
+
     async def remove_player(self, player, room):
         room.current_players_count = F('current_players_count') - 1
         await sync_to_async(room.save)()
@@ -388,5 +396,9 @@ class GameConsumer(AsyncWebsocketConsumer):
         return
 
     async def delete_room(self, room):
+        room.on = False
+        room.active = False
+        await sync_to_async(room.save)()
+
         await sync_to_async(room.delete)()
         return
