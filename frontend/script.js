@@ -41,7 +41,8 @@ async function joinRoom(csrfToken, playerName) {
 
 // WebSocket Manager Class
 class WebSocketManager {
-    constructor(url, canvasMessageHandler, chatMessageHandler) {
+    constructor(url, playerName, canvasMessageHandler, chatMessageHandler) {
+        this.playerName = playerName;
         this.drawer_name = null;
         this.current_word = null;
         this.turn_count = null;
@@ -82,9 +83,10 @@ class WebSocketManager {
             }
             else if (data.type === "guess" || data.type === "player_joined" || data.type === "player_left") {
                 this.chatMessageHandler(data);
+                this.updateHeader()
             }
             else if (data.type === "new_turn") {
-                this.drawer_name = data.name;
+                this.drawer_name = data.drawer;
                 this.turn_count = data.turn;
                 this.current_word = data.word;
                 this.updateHeader();
@@ -132,13 +134,15 @@ class WebSocketManager {
 // Canvas Manager Class
 class CanvasManager {
     constructor(wsManager) {
+        this.wsManager = wsManager;
+        
         this.canvas = document.getElementById("drawing-canvas");
         this.ctx = this.canvas.getContext("2d");
-        this.wsManager = wsManager;
+        this.drawing = false;
+        
         this.colorPicker = document.getElementById("color-picker");
         this.brushSizePicker = document.getElementById("brush-size");
         this.clearCanvasButton = document.getElementById('clear-canvas');
-        this.drawing = false;
         this.lastX = 0;
         this.lastY = 0;
 
@@ -216,11 +220,11 @@ class CanvasManager {
     }
 
     draw(e) {
-        if (!this.drawing || this.wsManager.drawer_name === username) return;
-
+        if (!this.drawing || this.wsManager.drawer_name !== this.wsManager.playerName) return;
+        
         const currentX = e.offsetX;
         const currentY = e.offsetY;
-
+        
         const drawingData = {
             type: "drawing",
             start: { x: this.lastX, y: this.lastY },
@@ -235,7 +239,7 @@ class CanvasManager {
     }
 
     touchDraw(e) {
-        if (!this.drawing || this.wsManager.drawer_name === username) return;
+        if (!this.drawing || this.wsManager.drawer_name !== this.wsManager.playerName) return;
         e.preventDefault(); // Prevent scrolling or zooming
 
         const { x: currentX, y: currentY } = this.normalizeTouchEvent(e);
@@ -290,10 +294,11 @@ class CanvasManager {
 
 class ChatManager {
     constructor(wsManager) {
+        this.wsManager = wsManager;
+
         this.chatInput = document.getElementById("chat-input");
         this.chatSendButton = document.getElementById("send-message");
         this.chatMessages = document.getElementById("chat-messages");
-        this.wsManager = wsManager;
 
         this.setupEventListeners();
     }
@@ -359,7 +364,7 @@ async function initializeGame(playerName) {
 
         console.log("Joined room:", roomId, "as player:", playerId);
 
-        const wsManager = new WebSocketManager(wsUrl, (canvasdata) => canvasManager.websocketActions(canvasdata), (chatdata) => chatManager.displayMessage(chatdata));
+        const wsManager = new WebSocketManager(wsUrl, playerName, (canvasdata) => canvasManager.websocketActions(canvasdata), (chatdata) => chatManager.displayMessage(chatdata));
         const canvasManager = new CanvasManager(wsManager);
         const chatManager = new ChatManager(wsManager);
     } catch (error) {
