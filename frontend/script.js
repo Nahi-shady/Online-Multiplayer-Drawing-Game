@@ -64,7 +64,7 @@ class WebSocketManager {
     updateHeader() {
         // Update drawer name
         const drawerNameElement = document.getElementById("drawer-name");
-        drawerNameElement.textContent = this.drawer_name || "Waiting...";
+        drawerNameElement.textContent = this.drawer_name || "Drawer...";
 
         // Update current word (hidden or hints)
         const wordElement = document.getElementById("word");
@@ -72,23 +72,25 @@ class WebSocketManager {
 
         // Update turn count
         const counterElement = document.getElementById("counter");
-        counterElement.textContent = this.turn_count ? `Turn: ${this.turn_count}` : "";
+        counterElement.textContent = this.turn_count ? `Round: ${this.turn_count}` : "Round:";
     }
 
     onMessage(event) {
         try {
             const data = JSON.parse(event.data);
-            if (data.type === "drawing" || data.type === "clear_canvas") {
+            const chatMessageTypes = new Set(["guess", "player_joined", "player_left"]);
+            const drawingMessageTypes = new Set(["drawing", "clear_canvas"])
+
+            if (drawingMessageTypes.has(data.type)) {
                 this.canvasMessageHandler(data);
             }
-            else if (data.type === "guess" || data.type === "player_joined" || data.type === "player_left") {
+            else if (chatMessageTypes.has(data.type)){
                 this.chatMessageHandler(data);
                 this.updateHeader()
             }
             else if (data.type === "new_turn") {
                 this.drawer_name = data.drawer;
                 this.turn_count = data.turn;
-                this.current_word = data.word;
                 this.updateHeader();
             }
             else if (data.type === "hint_update") {
@@ -105,8 +107,46 @@ class WebSocketManager {
                     li.textContent = `${player.name}: ${player.score}`;
                     leaderboardList.appendChild(li);
                 });
-            } else {
-                console.log(`Received message: ${data.type}`, data);
+            } 
+            else if (data.type === 'word_choices' && data.drawer === this.playerName) {
+                const wordChoices = data.choices;
+                const timeout = data.timeout;
+
+                const modal = document.getElementById('word-choice-modal');
+                
+                // Display word choices in the modal
+                const wordChoicesList = document.getElementById('word-choices');
+                wordChoicesList.innerHTML = ''; // Clear previous choices
+                wordChoices.forEach(word => {
+                  const li = document.createElement('li');
+                  li.textContent = word;
+                  li.addEventListener('click', () => {
+                    // Send the chosen word to the server
+                    this.socket.send(JSON.stringify({
+                      type: 'word_chosen',
+                      word: word,
+                      name: this.playerName,
+                    }));
+                    // Hide the modal
+                    modal.style.display = 'none';
+                  });
+                  wordChoicesList.appendChild(li);
+                });
+                modal.style.display = 'flex'; // Show the modal
+                
+                // Set a timeout to automatically send a timeout message if the drawer doesn't choose a word
+                setTimeout(() => {
+                    const modal = document.getElementById('word-choice-modal');
+                    if (modal.style.display === 'flex') {
+                        modal.style.display = 'none';}
+
+                    this.socket.send(JSON.stringify({
+                    type: 'word_choice_timeout'
+                    }));
+                }, timeout * 1000);
+            }
+            else {
+                console.log(`Received message: ${data.type}`, data, event);
             }
         } catch (error) {
             console.error("Error parsing WebSocket message:", error);
