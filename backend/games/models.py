@@ -11,7 +11,7 @@ class Room(models.Model):
     
     current_drawer = models.ForeignKey('Player', on_delete=models.SET_NULL, blank=True, null=True, related_name='drawer_room')
     current_players_count = models.IntegerField(default=0)
-    current_word = models.CharField(default='illustra', blank=True, null=False)
+    current_word = models.CharField(default='', blank=True, null=False)
     guess_count = models.IntegerField(default=0, blank=False, null=False)
     turn_count = models.IntegerField(default=0, blank=False, null=False)
     score_pool = models.IntegerField(default=450, blank=True, null=False)
