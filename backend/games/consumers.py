@@ -90,34 +90,32 @@ class GameConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         message_type = data.get('type')
         
-        room = await self.get_room()
-        player = await self.get_player()
-        if not player or not room:
-            raise DenyConnection("player or room doens't exist")
-            return
-        
-        drawer = await sync_to_async(lambda: room.current_drawer)()
-        if message_type == "guess":
-            await self.handle_guess(room, player, drawer, data.get('guess'))
-        elif message_type == "new_game":
-            await self.new_game(room)
-        elif message_type == 'drawing':
-            if drawer and drawer.name == player.name:
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {'type': 'drawing',
-                     'data': data})
-        elif message_type == 'word_chosen':
-            room.current_word = data['word']
-            await sync_to_async(room.save)()
-            await asyncio.sleep(2)
+        if message_type == 'drawing':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {'type': 'drawing',
+                    'data': data})
         elif message_type == 'clear_canvas':
-            if drawer and drawer.name == player.name:
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {'type': 'clear_canvas'})
         else:
-            await self.send(json.dumps({"error": "Unknown message type"}))
+            room = await self.get_room()
+            player = await self.get_player()
+            if not player or not room:
+                raise DenyConnection("player or room doens't exist")
+                return
+        
+            drawer = await sync_to_async(lambda: room.current_drawer)()
+            if message_type == "guess":
+                await self.handle_guess(room, player, drawer, data.get('guess'))
+            elif message_type == "new_game":
+                await self.new_game(room)
+            elif message_type == 'word_chosen':
+                room.current_word = data['word']
+                await sync_to_async(room.save)()
+            else:
+                await self.send(json.dumps({"error": "Unknown message type"}))
 
     async def handle_guess(self,room, player, drawer, guess):
         correct = False    
@@ -237,20 +235,6 @@ class GameConsumer(AsyncWebsocketConsumer):
         drawer = await sync_to_async(lambda: room.current_drawer)()
         print(f"Drawer: {drawer.name}")
 
-        # Get word choices
-        word_choices = await self.get_words()
-
-        # Notify drawer with word choices
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                "type": "word_choices",
-                "choices": word_choices,
-                "drawer": drawer.name,
-                "timeout": 15
-            }
-        )
-        
         # Start the new turn
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -261,16 +245,41 @@ class GameConsumer(AsyncWebsocketConsumer):
             }
         )
 
+        # Get word choices
+        word_choices = await self.get_words()
+        
+        # Notify drawer with word choices
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "word_choices",
+                "choices": word_choices,
+                "drawer": drawer.name,
+                "timeout": 5
+            }
+        )
+        
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "drawer_choosing_word",
+                "timeout": 3
+            }
+        )
+
         # Create async task for turn timer
         room_task[self.room_id] = asyncio.create_task(self.start_turn_timer())
 
     async def start_turn_timer(self):
+        room = await self.get_room()
+        
         try:
-            for remaining in range(60, 0, -1):
+            for remaining in range(20, 0, -1):
+                print(remaining)
                 await asyncio.sleep(1)
-                print(f"Time remaining: {remaining}")
-                if remaining == 45:
-                    room = await self.get_room()
+                if remaining == 15:
+                    await sync_to_async(room.refresh_from_db)()
+                    
                     if not room.current_word:
                         print("not selected")
                         await self.start_next_turn()
@@ -349,6 +358,9 @@ class GameConsumer(AsyncWebsocketConsumer):
                         "turn": event['turn'],
                         "drawer": event["drawer"]}))
 
+    async def drawer_choosing_word(self, event):
+        await self.send(json.dumps({'type': 'drawer_choosing_word','timeout': event['timeout']}))
+    
     async def timeout(self, event):
         room = await self.get_room()
         if not room:
@@ -373,7 +385,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             json.dumps({'type': 'drawing', 'start': start,
                         'end': end, 'color': color,
                         'thickness': thickness}))
-
+        
     async def clear_canvas(self, event):
         await self.send(json.dumps({"type": "clear_canvas"}))
 
