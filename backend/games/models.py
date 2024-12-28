@@ -9,7 +9,7 @@ class Room(models.Model):
     is_private = models.BooleanField(default=True)
     unique_code = models.CharField(max_length=8, blank=True, null=True, unique=True)
     
-    current_drawer = models.ForeignKey('Player', on_delete=models.SET_NULL, blank=True, null=True, related_name='drawer_room')
+    current_drawer = models.ForeignKey('Player', on_delete=models.CASCADE, blank=True, null=True, related_name='drawer_room')
     current_players_count = models.IntegerField(default=0)
     current_word = models.CharField(default='', blank=True, null=False)
     guess_count = models.IntegerField(default=0, blank=False, null=False)
