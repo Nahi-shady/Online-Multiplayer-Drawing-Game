@@ -165,9 +165,6 @@ AUTH_USER_MODEL = 'users.User'
 # CHANNEL_LAYERS = {
 #     'default': {
 #         'BACKEND': 'channels.layers.InMemoryChannelLayer',  # Make sure the backend is correct
-#         # 'CONFIG': {
-#         #     "hosts": [('127.0.0.1', 6379)],  # Ensure the Redis host and port are correct
-#         # },
 #     },
 # }
 
@@ -179,5 +176,6 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
 # allowed hosts for testing
 CORS_ALLOW_ALL_ORIGINS = True
