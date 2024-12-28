@@ -108,7 +108,7 @@ class WebSocketManager {
                     leaderboardList.appendChild(li);
                 });
             } 
-            else if (data.type === 'word_choices' && data.drawer === this.playerName) {
+            else if (data.type === 'word_choices' && this.drawer_name === this.playerName) {
                 const wordChoices = data.choices;
                 const timeout = data.timeout;
 
@@ -134,17 +134,27 @@ class WebSocketManager {
                 });
                 modal.style.display = 'flex'; // Show the modal
                 
-                // Set a timeout to automatically send a timeout message if the drawer doesn't choose a word
                 setTimeout(() => {
                     const modal = document.getElementById('word-choice-modal');
                     if (modal.style.display === 'flex') {
                         modal.style.display = 'none';}
-
-                    this.socket.send(JSON.stringify({
-                    type: 'word_choice_timeout'
-                    }));
                 }, timeout * 1000);
             }
+            else if (data.type === 'drawer_choosing_word' && this.drawer_name !== this.playerName){
+                const timeout = data.timeout;
+
+                const modal = document.getElementById('drawer-choosing-modal')
+                const header = document.getElementById('drawer-choosing')
+                header.textContent = `${this.drawer_name} is choosing a word...`
+
+                modal.style.display = 'flex'; // Show the modal
+                setTimeout(() => {
+                    const modal = document.getElementById('drawer-choosing-modal');
+                    if (modal.style.display === 'flex') {
+                        modal.style.display = 'none';}
+                }, timeout * 1000);
+            }
+
             else {
                 console.log(`Received message: ${data.type}`, data, event);
             }
@@ -273,8 +283,8 @@ class CanvasManager {
             thickness: this.ctx.lineWidth,
         };
         this.wsManager.sendMessage(drawingData);
+        console.log('++++++', currentX, currentY);
 
-        this.renderIncomingDrawing(drawingData);
         [this.lastX, this.lastY] = [currentX, currentY];
     }
 
@@ -292,7 +302,7 @@ class CanvasManager {
             thickness: this.ctx.lineWidth,
         };
         this.wsManager.sendMessage(drawingData);
-
+        console.log('++++++', currentX, currentY);
         [this.lastX, this.lastY] = [currentX, currentY];
     }
 
@@ -311,8 +321,10 @@ class CanvasManager {
     }
 
     sendClearCanvas() {
+        if (this.wsManager.drawer_name !== this.wsManager.playerName) {
+            return
+        }
         const data = {type: "clear_canvas"}
-        console.log(data)
         this.wsManager.sendMessage(data)
     }
 
@@ -328,6 +340,8 @@ class CanvasManager {
         this.ctx.moveTo(start.x, start.y);
         this.ctx.lineTo(end.x, end.y);
         this.ctx.stroke();
+        console.log('-------', start, end);
+
     }
 }
 
