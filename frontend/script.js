@@ -283,7 +283,6 @@ class CanvasManager {
             thickness: this.ctx.lineWidth,
         };
         this.wsManager.sendMessage(drawingData);
-        console.log('++++++', currentX, currentY);
 
         [this.lastX, this.lastY] = [currentX, currentY];
     }
@@ -302,7 +301,7 @@ class CanvasManager {
             thickness: this.ctx.lineWidth,
         };
         this.wsManager.sendMessage(drawingData);
-        console.log('++++++', currentX, currentY);
+        
         [this.lastX, this.lastY] = [currentX, currentY];
     }
 
