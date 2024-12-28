@@ -301,7 +301,7 @@ class CanvasManager {
             thickness: this.ctx.lineWidth,
         };
         this.wsManager.sendMessage(drawingData);
-        
+
         [this.lastX, this.lastY] = [currentX, currentY];
     }
 
@@ -339,8 +339,6 @@ class CanvasManager {
         this.ctx.moveTo(start.x, start.y);
         this.ctx.lineTo(end.x, end.y);
         this.ctx.stroke();
-        console.log('-------', start, end);
-
     }
 }
 
