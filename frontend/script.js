@@ -46,6 +46,7 @@ class WebSocketManager {
         this.drawer_name = null;
         this.current_word = null;
         this.turn_count = null;
+        this.game_started = false;
 
         this.url = url;
         this.canvasMessageHandler = canvasMessageHandler;
@@ -87,6 +88,13 @@ class WebSocketManager {
             else if (chatMessageTypes.has(data.type)){
                 this.chatMessageHandler(data);
                 this.updateHeader()
+                if (this.game_started) {
+                    const startButton = document.getElementById('start-game');
+                    startButton.style.display = 'none';
+                }
+            }
+            else if (data.type === 'ping'){
+                console.log('pong')
             }
             else if (data.type === "new_turn") {
                 this.drawer_name = data.drawer;
@@ -154,7 +162,34 @@ class WebSocketManager {
                         modal.style.display = 'none';}
                 }, timeout * 1000);
             }
+            else if (data.type === 'new_game') {
+                console.log("11111111111111111111111")
+                this.game_started = true;
+                const startButtonContainer = document.getElementById('start-game');
+                startButtonContainer.style.display = 'none';
 
+                let seconds = data.timeout; // Start countdown from this value
+            
+                const modal = document.getElementById('new-game-modal');
+                const header = document.getElementById('timer');
+                modal.style.display = 'flex'; // Show the modal
+                
+                // Countdown logic
+                const countdown = setInterval(() => {
+                    seconds--; // Decrease the seconds by 1
+                    header.textContent = seconds; // Update the timer display
+            
+                    // Stop the timer at 0
+                    if (seconds <= 0) {
+                        clearInterval(countdown);
+                        header.textContent = "Play!";
+
+                        setTimeout(() => {
+                            modal.style.display = 'none'; 
+                          }, 2000)            
+                    }   
+                }, 1000);
+            }
             else {
                 console.log(`Received message: ${data.type}`, data, event);
             }
@@ -418,6 +453,24 @@ async function initializeGame(playerName) {
         const wsManager = new WebSocketManager(wsUrl, playerName, (canvasdata) => canvasManager.websocketActions(canvasdata), (chatdata) => chatManager.displayMessage(chatdata));
         const canvasManager = new CanvasManager(wsManager);
         const chatManager = new ChatManager(wsManager);
+
+        // Create a button to start the game
+        const startButtonContainer = document.getElementById('start-game');
+        const newGameButton = document.createElement("button");
+        newGameButton.className = 'btn'
+        newGameButton.textContent = "Start New Game";
+        newGameButton.addEventListener("click", handleNewGameClick);
+        startButtonContainer.appendChild(newGameButton);
+
+        // Handle new game button click
+        function handleNewGameClick() {
+            if (!wsManager.game_started) {
+                console.log('-----------------')
+                const message = { type: "new_game" };
+                wsManager.sendMessage(message); 
+            }
+        }
+
     } catch (error) {
         console.error("Error initializing game: ", error);
     }
