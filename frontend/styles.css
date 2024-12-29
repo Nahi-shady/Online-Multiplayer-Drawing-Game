@@ -12,6 +12,16 @@ ul {
 }
 
 /* common styles for the page */
+.btn {
+  width: auto;
+  padding: 10px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
 .green-text {
   color: #50ff39;
 }
