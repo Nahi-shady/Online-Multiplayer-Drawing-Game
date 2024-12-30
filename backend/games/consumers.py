@@ -106,11 +106,14 @@ class GameConsumer(AsyncWebsocketConsumer):
                 await self.handle_guess(room, player, drawer, data.get('guess'))
             elif message_type == "new_game":
                 if room.current_players_count > 1 and not room.on:
-                    print('----', player.name, '-----')
                     await self.start_new_game(room)
             elif message_type == 'word_chosen':
                 room.current_word = data['word']
                 await sync_to_async(room.save)()
+                
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {"type": "clear_modal"})
             else:
                 await self.send(json.dumps({"error": "Unknown message type"}))
 
@@ -249,6 +252,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         # Get word choices
         word_choices = await self.get_words()
         
+        timeout = 10
         # Notify drawer with word choices
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -256,7 +260,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 "type": "word_choices",
                 "choices": word_choices,
                 "drawer": drawer.name,
-                "timeout": 10
+                "timeout": timeout
             }
         )
         
@@ -264,7 +268,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             {
                 "type": "drawer_choosing_word",
-                "timeout": 4
+                "timeout": timeout
             }
         )
 
@@ -290,12 +294,15 @@ class GameConsumer(AsyncWebsocketConsumer):
                     if not room.current_word:
                         print("not selected")
                         break
-                    else:
-                        await self.channel_layer.group_send(
-                            self.room_group_name,
-                            {"type": "hint_update", 
-                             "hint": ''.join('-' if c != ' ' else ' ' for c in room.current_word)})
-                
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {"type": "hint_update", 
+                            "hint": ''.join('-' if c != ' ' else ' ' for c in room.current_word)})
+                    
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {"type": "clear_modal"})
+            
                 if remaining == 10:
                     await self.provide_hint(-1, room.current_word)
                 if remaining == 5:
@@ -347,15 +354,10 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def player_left(self, event):
         await self.send(json.dumps({'type': 'player_left', 'id': event['id']}))
-
+    
+    #Game Events 
     async def leaderboard_update(self, event):
         await self.send(json.dumps({'type': 'leaderboard_update', 'leaderboard': event['leaderboard']}))
-
-    async def hint_update(self, event):
-        await self.send(json.dumps({'type': 'hint_update', 'hint': event['hint']}))
-
-    async def word_choices(self, event):
-        await self.send(json.dumps({'type': 'word_choices', 'choices': event['choices'], "drawer": event['drawer'], 'timeout': event['timeout']}))
 
     async def new_game(self, event):
         if event.get("broadcaster_id") == self.player_id:
@@ -380,10 +382,15 @@ class GameConsumer(AsyncWebsocketConsumer):
         players = await self.get_scoreboard()
         await self.send(json.dumps({"type": "game_over", "score_board": [{"name": player.name, "score":player.score} for player in players]}))
 
+    async def clear_modal(self, event):
+        await self.send(json.dumps({"type": "clear_modal"}))
 
     # drawing events
     async def drawer_choosing_word(self, event):
-        await self.send(json.dumps({'type': 'drawer_choosing_word','timeout': event['timeout']}))
+        await self.send(json.dumps({'type': 'drawer_choosing_word', 'timeout': event['timeout']}))
+
+    async def word_choices(self, event):
+        await self.send(json.dumps({'type': 'word_choices', 'choices': event['choices'], "drawer": event['drawer'], 'timeout': event['timeout']}))
    
     async def drawing(self, event):
         data = event['data']
@@ -400,7 +407,10 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def clear_canvas(self, event):
         await self.send(json.dumps({"type": "clear_canvas"}))
 
-    
+    async def hint_update(self, event):
+        await self.send(json.dumps({'type': 'hint_update', 'hint': event['hint']}))
+
+
     # Helper Methods
     async def get_player(self):
         try:
