@@ -112,6 +112,11 @@ class GameConsumer(AsyncWebsocketConsumer):
                 await sync_to_async(room.save)()
                 
                 await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {"type": "hint_update", 
+                            "hint": ''.join('-' if c != ' ' else ' ' for c in room.current_word)})
+                
+                await self.channel_layer.group_send(
                     self.room_group_name,
                     {"type": "clear_modal"})
             else:
@@ -294,10 +299,6 @@ class GameConsumer(AsyncWebsocketConsumer):
                     if not room.current_word:
                         print("not selected")
                         break
-                    await self.channel_layer.group_send(
-                        self.room_group_name,
-                        {"type": "hint_update", 
-                            "hint": ''.join('-' if c != ' ' else ' ' for c in room.current_word)})
                     
                     await self.channel_layer.group_send(
                         self.room_group_name,
