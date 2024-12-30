@@ -183,8 +183,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             }
         )
     
-    # reset room values (i.e turn_count and player scores) and start a new game
-    async def start_new_game(self, room):
+    async def start_new_game(self, room): # reset room values (i.e turn_count and player scores) and start a new game
         if self.room_id in room_task:
             await self.channel_layer.group_send(
                 self.room_group_name,
