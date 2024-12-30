@@ -189,7 +189,15 @@ class WebSocketManager {
                         modal.style.display = 'none';}
                 }, timeout * 1000);
             }
-            
+            else if (data.type === 'clear_modal') {
+                const modals = document.getElementsByClassName('modal');
+                if (modals.length === 0) {
+                    console.warn("No modals found to clear.");
+                }
+                for (const modal of modals) {
+                    modal.style.display = 'none'; // Set display to none for each modal
+                }
+            }
             else {
                 console.log(this.playerName, '----', this.drawer_name)
                 console.log(`Received message: ${data.type}`,);
