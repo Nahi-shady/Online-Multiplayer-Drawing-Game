@@ -96,6 +96,33 @@ class WebSocketManager {
             else if (data.type === 'ping'){
                 console.log('pong')
             }
+            else if (data.type === 'new_game') {
+                this.game_started = true;
+                const startButtonContainer = document.getElementById('start-game');
+                startButtonContainer.style.display = 'none';
+
+                let seconds = data.timeout; // Start countdown from this value
+            
+                const modal = document.getElementById('new-game-modal');
+                const header = document.getElementById('timer');
+                modal.style.display = 'flex'; // Show the modal
+                
+                // Countdown logic
+                const countdown = setInterval(() => {
+                    seconds--; // Decrease the seconds by 1
+                    header.textContent = seconds; // Update the timer display
+            
+                    // Stop the timer at 0
+                    if (seconds <= 0) {
+                        clearInterval(countdown);
+                        header.textContent = "Don't lose!";
+
+                        setTimeout(() => {
+                            modal.style.display = 'none'; 
+                          }, 2000)            
+                    }   
+                }, 1000);
+            }
             else if (data.type === "new_turn") {
                 this.drawer_name = data.drawer;
                 this.turn_count = data.turn;
@@ -162,36 +189,10 @@ class WebSocketManager {
                         modal.style.display = 'none';}
                 }, timeout * 1000);
             }
-            else if (data.type === 'new_game') {
-                console.log("11111111111111111111111")
-                this.game_started = true;
-                const startButtonContainer = document.getElementById('start-game');
-                startButtonContainer.style.display = 'none';
-
-                let seconds = data.timeout; // Start countdown from this value
             
-                const modal = document.getElementById('new-game-modal');
-                const header = document.getElementById('timer');
-                modal.style.display = 'flex'; // Show the modal
-                
-                // Countdown logic
-                const countdown = setInterval(() => {
-                    seconds--; // Decrease the seconds by 1
-                    header.textContent = seconds; // Update the timer display
-            
-                    // Stop the timer at 0
-                    if (seconds <= 0) {
-                        clearInterval(countdown);
-                        header.textContent = "Play!";
-
-                        setTimeout(() => {
-                            modal.style.display = 'none'; 
-                          }, 2000)            
-                    }   
-                }, 1000);
-            }
             else {
-                console.log(`Received message: ${data.type}`, data, event);
+                console.log(this.playerName, '----', this.drawer_name)
+                console.log(`Received message: ${data.type}`,);
             }
         } catch (error) {
             console.error("Error parsing WebSocket message:", error);
@@ -465,7 +466,7 @@ async function initializeGame(playerName) {
         // Handle new game button click
         function handleNewGameClick() {
             if (!wsManager.game_started) {
-                console.log('-----------------')
+
                 const message = { type: "new_game" };
                 wsManager.sendMessage(message); 
             }
