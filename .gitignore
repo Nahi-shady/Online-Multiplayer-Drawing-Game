@@ -10,3 +10,7 @@ migrations
 
 # db
 db.sqlite3
+
+# others
+*.gitignore
+todo's.txt
