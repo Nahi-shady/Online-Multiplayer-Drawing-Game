@@ -245,12 +245,14 @@ class GameConsumer(AsyncWebsocketConsumer):
         print(f"Drawer: {drawer.name}")
 
         # Start the new turn
+        turn_timer = 30
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 "type": "new_turn",
                 "drawer": drawer.name if drawer else '',
                 "turn": room.turn_count,
+                'timeout': turn_timer   # turn timer
             }
         )
 
@@ -284,13 +286,13 @@ class GameConsumer(AsyncWebsocketConsumer):
         )
  
         # Create async task for turn timer
-        room_task[self.room_id] = asyncio.create_task(self.start_turn_timer())
+        room_task[self.room_id] = asyncio.create_task(self.start_turn_timer(turn_timer))
 
-    async def start_turn_timer(self):
+    async def start_turn_timer(self, turn_timer):
         room = await self.get_room()
         
         try:
-            for remaining in range(30, 0, -1):
+            for remaining in range(turn_timer, 0, -1):
                 print(remaining)
                 await asyncio.sleep(1)
                 if remaining == 20:
@@ -298,6 +300,10 @@ class GameConsumer(AsyncWebsocketConsumer):
                     
                     if not room.current_word:
                         print("not selected")
+                        await self.channel_layer.group_send(
+                            self.room_group_name,
+                            {"type": "skip_turn",
+                             'message': 'Drawer did not choose a word, skipping turn'})
                         break
                     
                     await self.channel_layer.group_send(
@@ -369,7 +375,8 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.send(
             json.dumps({"type": "new_turn", 
                         "turn": event['turn'],
-                        "drawer": event["drawer"]}))
+                        "drawer": event["drawer"],
+                        'timeout': event['timeout']}))
     
     async def timeout(self, event):
         room = await self.get_room()
@@ -383,6 +390,9 @@ class GameConsumer(AsyncWebsocketConsumer):
         players = await self.get_scoreboard()
         await self.send(json.dumps({"type": "game_over", "score_board": [{"name": player.name, "score":player.score} for player in players]}))
 
+    async def skip_turn(self, event):
+        await self.send(json.dumps({"type": "skipping_turn", 'message': event['message']}))
+        
     async def clear_modal(self, event):
         await self.send(json.dumps({"type": "clear_modal"}))
 
