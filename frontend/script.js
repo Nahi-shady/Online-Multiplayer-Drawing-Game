@@ -482,6 +482,7 @@ async function initializeGame(playerName) {
 
     } catch (error) {
         console.error("Error initializing game: ", error);
+        window.location.href = 'index.html';
     }
 }
 
