@@ -1,8 +1,8 @@
 // Parse query parameters
 const params = new URLSearchParams(window.location.search);
 const username = params.get('username');
-const room = params.get('room') || 'new';
-
+const roomCode = params.get('room') || '';
+console.log(username, roomCode);
 // Configuration
 const API_BASE_URL = "http://127.0.0.1:8000/games";
 const WS_BASE_URL = "ws://localhost:8000/ws/game/";
@@ -21,7 +21,7 @@ async function fetchCsrfToken() {
 }
 
 // Utility to join a room
-async function joinRoom(csrfToken, playerName) {
+async function joinRoom(csrfToken, playerName, room_code) {
     try {
         const response = await fetch(`${API_BASE_URL}/join-room`, {
             method: "POST",
@@ -29,7 +29,7 @@ async function joinRoom(csrfToken, playerName) {
                 "Content-Type": "application/json",
                 "X-CSRFToken": csrfToken,
             },
-            body: JSON.stringify({ name: playerName }),
+            body: JSON.stringify({ name: playerName, unique_code: room_code }),
         });
         if (!response.ok) throw new Error(`Failed to join room: ${response.status}`);
         return await response.json();
@@ -477,10 +477,10 @@ class ChatManager {
 
 
 // Initialize game
-async function initializeGame(playerName) {
+async function initializeGame(playerName, roomCode) {
     try {
         const csrfToken = await fetchCsrfToken();
-        const { id: playerId, room: roomId } = await joinRoom(csrfToken, playerName);
+        const { id: playerId, room: roomId } = await joinRoom(csrfToken, playerName, roomCode);
         const wsUrl = `${WS_BASE_URL}${roomId}/${playerId}/`;
 
         console.log("Joined room:", roomId, "as player:", playerId);
@@ -509,8 +509,9 @@ async function initializeGame(playerName) {
     } catch (error) {
         console.error("Error initializing game: ", error);
         window.location.href = 'index.html';
+        alert(error)
     }
 }
 
 // Start the game
-initializeGame(username);
+initializeGame(username, roomCode);
