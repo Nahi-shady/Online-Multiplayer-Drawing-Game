@@ -47,6 +47,7 @@ class WebSocketManager {
         this.current_word = null;
         this.turn_count = null;
         this.game_started = false;
+        this.skip_turn = false;
 
         this.url = url;
         this.canvasMessageHandler = canvasMessageHandler;
@@ -63,9 +64,9 @@ class WebSocketManager {
     }
 
     updateHeader() {
-        // Update drawer name
-        const drawerNameElement = document.getElementById("drawer-name");
-        drawerNameElement.textContent = this.drawer_name || "Drawer...";
+        // // Update drawer name
+        const drawerNameElement = document.getElementById("timer");
+        drawerNameElement.textContent = "0";
 
         // Update current word (hidden or hints)
         const wordElement = document.getElementById("word");
@@ -98,6 +99,7 @@ class WebSocketManager {
             }
             else if (data.type === 'new_game') {
                 this.game_started = true;
+
                 const startButtonContainer = document.getElementById('start-game');
                 startButtonContainer.style.display = 'none';
 
@@ -113,7 +115,7 @@ class WebSocketManager {
                     header.textContent = seconds; // Update the timer display
             
                     // Stop the timer at 0
-                    if (seconds <= 0) {
+                    if (seconds <= 1) {
                         clearInterval(countdown);
                         header.textContent = "Don't lose!";
 
@@ -126,11 +128,35 @@ class WebSocketManager {
             else if (data.type === "new_turn") {
                 this.drawer_name = data.drawer;
                 this.turn_count = data.turn;
+                this.skip_turn = false;
                 this.updateHeader();
+
+                let seconds = data.timeout; // Start countdown from this value
+                const header = document.getElementById('countdown');
+                header.textContent = seconds;
+                
+                // Countdown logic
+                const countdown = setInterval(() => {
+                    seconds--; // Decrease the seconds by 1
+                    header.textContent = seconds; // Update the timer display
+            
+                    // Stop the timer at 0
+                    if (seconds <= 2  || this.skip_turn) {
+                        clearInterval(countdown);
+                        
+                        setTimeout(() => {
+                            header.textContent = "timeout";
+                        }, 2000)            
+                    }   
+                }, 1000);
+                header.textContent = 0;
             }
             else if (data.type === "hint_update") {
                 this.current_word = data.hint;
                 this.updateHeader();
+            }
+            else if (data.type === "skipping_turn") {
+                this.skip_turn = true
             }
             else if (data.type === "leaderboard_update") {
                 const leaderboardList = document.getElementById("leaderboard-list");
