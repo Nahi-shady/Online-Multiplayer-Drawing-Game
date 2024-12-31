@@ -122,6 +122,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             else:
                 await self.send(json.dumps({"error": "Unknown message type"}))
 
+
     async def handle_guess(self,room, player, drawer, guess):
         correct = False    
         if room.on and player.id != drawer.id and not player.guessed and guess.lower() == room.current_word.lower():
@@ -151,7 +152,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         await sync_to_async(room.save)()
         await sync_to_async(room.refresh_from_db)()
         
-        if room.guess_count >= room.current_players_count:
+        if room.guess_count >= room.current_players_count - 1:
             if self.room_id in room_task:
                 room_task[self.room_id].cancel()
                 del room_task[self.room_id]
