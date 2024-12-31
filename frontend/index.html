@@ -54,7 +54,7 @@
         <input type="text" id="username" placeholder="Your username" required>
 
         <label for="room">Room Code (optional):</label>
-        <input type="text" id="room" placeholder="Enter a room code or leave blank to create a new one">
+        <input type="text" id="room" placeholder="Room code to join private game">
 
         <button id="join">Join Game</button>
     </div>
@@ -68,9 +68,13 @@
                 alert('Length of username must be between 1 and 10');
                 return;
             }
+            if (room.length > 8) {
+                alert('Length of private room code must be less than 9');
+                return;
+            }
 
             // Navigate to the game room
-            const roomParam = room ? `?room=${room}` : '';
+            const roomParam = room ? `&room=${room}` : '';
             window.location.href = `game_room.html?username=${encodeURIComponent(username)}${roomParam}`;
         });
     </script>
