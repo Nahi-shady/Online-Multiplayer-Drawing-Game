@@ -66,12 +66,16 @@ class JoinRoomView(APIView):
             if not room:
                 return Response({"detail": "Private room with this code does not exist or is inactive."}, status=status.HTTP_404_NOT_FOUND)
             
+            if Player.objects.filter(name=name, room=room).count() > 0:
+                return Response({"detail": "Player with that name already exists."}, status=status.HTTP_400_BAD_REQUEST)
+            
             if room.current_players_count >= room.max_players:
                 return Response({"detail": "Room is full."}, status=status.HTTP_400_BAD_REQUEST)
         else:
             room = Room.objects.get_public_room()
-            if not room:
+            if not room or Player.objects.filter(room=room, name=name).exists():
                 room = Room.objects.create_public_room()
+
         
         with transaction.atomic():
             player = Player.objects.create(name=name, room=room)
