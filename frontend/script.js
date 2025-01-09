@@ -226,7 +226,7 @@ class WebSocketManager {
             }
             else {
                 console.log(this.playerName, '----', this.drawer_name)
-                console.log(`Received message: ${data.type}`,);
+                console.log(`Received message: ${data.message}`,);
             }
         } catch (error) {
             console.error("Error parsing WebSocket message:", error);
