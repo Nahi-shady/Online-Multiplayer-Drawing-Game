@@ -143,11 +143,11 @@ class WebSocketManager {
                     // Stop the timer at 0
                     if (seconds <= 2  || this.skip_turn) {
                         clearInterval(countdown);
-                        
+                        console.log(this.skip_turn)
                         setTimeout(() => {
                             header.textContent = "timeout";
                         }, 2000)            
-                    }   
+                    }
                 }, 1000);
                 header.textContent = 0;
             }
