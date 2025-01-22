@@ -1,15 +1,15 @@
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
 from rest_framework.decorators import api_view
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import AllowAny
 
 from .models import Room, Player
 from .serializers import RoomSerializer, PlayerSerializer
 
+from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
 from django.db import transaction
-from django.middleware.csrf import get_token
 
 
 class GetCsrfTokenView(APIView):
@@ -17,8 +17,7 @@ class GetCsrfTokenView(APIView):
     permission_classes = [AllowAny]
     
     def get(self, request):
-        return Response({'csrfToken': get_token(request)})
-        
+        return Response({'csrfToken': get_token(request)})   
 
 class CreateRoomView(APIView):
     authentication_classes = []
@@ -76,7 +75,6 @@ class JoinRoomView(APIView):
             if not room or Player.objects.filter(room=room, name=name).exists():
                 room = Room.objects.create_public_room()
 
-        
         with transaction.atomic():
             player = Player.objects.create(name=name, room=room)
             room.current_players_count += 1
