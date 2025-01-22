@@ -19,6 +19,7 @@ python-dotenv = "*"
 channels-redis = "*"
 redis = "*"
 channels = "*"
+django-redis = "*"
 
 [dev-packages]
 
