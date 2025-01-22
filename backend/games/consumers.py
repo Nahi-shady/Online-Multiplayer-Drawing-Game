@@ -43,34 +43,39 @@ class GameConsumer(AsyncWebsocketConsumer):
             raise DenyConnection("player or room doens't exist")
             return
         
-        drawer = await sync_to_async(lambda: room.current_drawer)()
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name)
         
+        drawer = await sync_to_async(lambda: room.current_drawer)()
         if player == drawer:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {"type": "skip_turn",
+                 "message": "Drawer disconnected!"})
+            
             if self.room_id in room_task:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {"type": "message", "message": "Drawer disconnected"}
+                )
+                
                 room_task[self.room_id].cancel()
                 del room_task[self.room_id]
-                await self.channel_layer.group_send(
-                self.room_group_name,
-                {"type": "message",
-                 "message": "Drawer disconnected"})
             else:
                 await self.channel_layer.group_send(
                 self.room_group_name,
-                {"type": "message",
-                 "message": "not handled drawer leave!"})
-                
-                await self.start_next_turn()
+                    {"type": "message",
+                    "message": "not handled drawer leave!"}
+                )
         else:
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {'type': 'player_left', 'id': self.player_id})
             
-        await self.remove_player(player, room)
-        
+        await self.remove_player()
         await sync_to_async(room.refresh_from_db)()
+                
         if room.current_players_count < 1:
             if self.room_id in room_task:
                 room_task[self.room_id].cancel()
@@ -121,7 +126,6 @@ class GameConsumer(AsyncWebsocketConsumer):
                     {"type": "clear_modal"})
             else:
                 await self.send(json.dumps({"error": "Unknown message type"}))
-
 
     async def handle_guess(self,room, player, drawer, guess):
         correct = False    
@@ -213,7 +217,8 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def start_next_turn(self):
         room = await self.get_room()
         if not room:
-            raise DenyConnection("room doesn't exist")
+            print("Room does not exist, skipping turn.")
+            return  # Exit gracefully if the room doesn't exist
 
         # End game if final turn is played
         if room.turn_count >= 5:
@@ -289,41 +294,39 @@ class GameConsumer(AsyncWebsocketConsumer):
         room_task[self.room_id] = asyncio.create_task(self.start_turn_timer(turn_timer))
 
     async def start_turn_timer(self, turn_timer):
-        room = await self.get_room()
-        
         try:
+            room = await self.get_room()
+            if not room:
+                print("Room does not exist, stopping turn timer.")
+                return  # Exit if the room doesn't exist
+
             for remaining in range(turn_timer, 0, -1):
-                print(remaining)
+                print(remaining, self.player_id)
                 await asyncio.sleep(1)
+                
                 if remaining == 20:
                     await sync_to_async(room.refresh_from_db)()
-                    
                     if not room.current_word:
-                        print("not selected")
                         await self.channel_layer.group_send(
                             self.room_group_name,
-                            {"type": "skip_turn",
-                             'message': 'Drawer did not choose a word, skipping turn'})
-                        break
+                            {"type": "skip_turn", "message": "Drawer did not choose a word, skipping turn"}
+                        )
+                        break  # Skip the turn if no word is chosen
                     
-                    await self.channel_layer.group_send(
-                        self.room_group_name,
-                        {"type": "clear_modal"})
-            
+                    await self.channel_layer.group_send(self.room_group_name, {"type": "clear_modal"})
+
                 if remaining == 10:
                     await self.provide_hint(-1, room.current_word)
                 if remaining == 5:
                     await self.provide_hint(1, room.current_word)
-                    
+
         except asyncio.CancelledError:
-            # Turn was cancelled (e.g., player left)
+            print("Turn timer was cancelled.")
             await self.channel_layer.group_send(
                 self.room_group_name,
-                {"type": "message",
-                "message": "Turn skipped!"}
+                {"type": "message", "message": "Turn skipped due to cancellation!"}
             )
         
-        await asyncio.sleep(3)
         await self.start_next_turn()
 
     async def provide_hint(self, idx, selected_word):
@@ -471,13 +474,13 @@ class GameConsumer(AsyncWebsocketConsumer):
         
         room.current_drawer = new_drawer
         await sync_to_async(room.save)()
-
-    async def remove_player(self, player, room):
+    
+    async def remove_player(self):
+        player, room = await self.get_player(), await self.get_room()
         room.current_players_count = F('current_players_count') - 1
         await sync_to_async(room.save)()
         
         await sync_to_async(player.delete)()
-        return
 
     async def delete_room(self, room):
         room.on = False
