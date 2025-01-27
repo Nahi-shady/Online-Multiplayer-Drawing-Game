@@ -28,7 +28,7 @@ class RoomControler():
     async def get_room(self) -> Room:
         try:
             return await sync_to_async(Room.objects.get)(id=self.room_id)
-        except:
+        except Room.DoesNotExist:
             logging.error('Room with id %s not found', self.room_id)
             return None
         
