@@ -17,3 +17,17 @@ class GameController():
         self.room_id = room_id
         self.room_group_name = f'room_{self.room_id}'
         
+    async def player_joined(self, player_id: int) -> None:
+        try:
+            player = await sync_to_async(Player.objects.get)(pk=player_id)
+            player.is_active = True
+            await player.save()
+        except Player.DoesNotExist:
+            logging.error(f'Player with id {player_id} does not exist.')
+            return
+        
+        await self.group_send(
+            {
+                'type': 'player_joined',
+                'player_id': player_id
+            })
