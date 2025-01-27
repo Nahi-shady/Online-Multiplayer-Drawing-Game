@@ -35,5 +35,14 @@ class RoomControler():
     async def refresh_room_db(self) -> Room:
         self.room = await self.get_room()
         if self.room:
+            self.drawer = None
+            self.players_count = self.room.current_players_count
+            self.current_word = self.room.current_word
+            self.guess_count = self.room.guess_count
+            self.turn_count = self.room.turn_count
+            self.score_pool = self.room.__bool__
+            self.on = self.room.on
+            
             return self.room
         
+         
