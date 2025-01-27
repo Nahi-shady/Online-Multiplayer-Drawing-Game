@@ -31,4 +31,9 @@ class RoomControler():
         except Room.DoesNotExist:
             logging.error('Room with id %s not found', self.room_id)
             return None
+    
+    async def refresh_room_db(self) -> Room:
+        self.room = await self.get_room()
+        if self.room:
+            return self.room
         
