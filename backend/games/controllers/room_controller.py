@@ -24,4 +24,11 @@ class RoomControler():
         self.turn_count = 0
         self.score_pool = 450
         self.on = False
+    
+    async def get_room(self) -> Room:
+        try:
+            return await sync_to_async(Room.objects.get)(id=self.room_id)
+        except:
+            logging.error('Room with id %s not found', self.room_id)
+            return None
         
