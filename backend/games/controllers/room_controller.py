@@ -25,13 +25,6 @@ class RoomControler():
         self.score_pool = 450
         self.on = False
     
-    async def get_room(self) -> Room:
-        try:
-            return await sync_to_async(Room.objects.get)(id=self.room_id)
-        except Room.DoesNotExist:
-            logging.error('Room with id %s not found', self.room_id)
-            return None
-    
     async def refresh_room_db(self) -> Room:
         self.room = await self.get_room()
         if self.room:
@@ -44,4 +37,18 @@ class RoomControler():
             self.on = self.room.on
             
             return self.room
+        
+    async def get_room(self) -> Room:
+        try:
+            return await sync_to_async(Room.objects.get)(id=self.room_id)
+        except Room.DoesNotExist:
+            logging.error('Room with id %s not found', self.room_id)
+            return None
     
+    async def get_drawer(self) -> Player:
+        room = self.get_room()
+        if room:
+            drawer = await sync_to_async(lambda: room.current_drawer)()
+            return drawer
+        
+        return False
