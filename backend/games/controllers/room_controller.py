@@ -46,9 +46,24 @@ class RoomControler():
             return None
     
     async def get_drawer(self) -> Player:
-        room = self.get_room()
+        room = await self.get_room()
         if room:
             drawer = await sync_to_async(lambda: room.current_drawer)()
             return drawer
+        
+        return False
+    
+    async def is_active(self) -> bool:
+        room = await self.get_room()
+        if not room or not room.is_active or room.current_players_count <= 0:
+            return False
+        
+        return True
+    
+    async def remove_room(self) -> bool:
+        room = await self.get_room()
+        if room:
+            await sync_to_async(room.delete)()
+            return True
         
         return False
