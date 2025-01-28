@@ -49,10 +49,31 @@ class RoomControler():
         room = await self.get_room()
         if room:
             drawer = await sync_to_async(lambda: room.current_drawer)()
-            return drawer
+            self.drawer = drawer
+            return self.drawer
         
         return False
     
+    async def update_scores(self, player_id: int, guess: str) -> bool:
+        player = self.get_player(player_id)
+        if not self.on or player_id == self.drawer.id or player.guessed or guess.lower() != self.current_word.lower():
+            return False
+        
+        player.score = F('score') + self.room.score_pool
+        player.guessed = True
+        await sync_to_async(player.save)()
+
+        self.drawer.score = F('score') + (self.room.score_pool // self.room.current_players_count)
+        await sync_to_async(self.drawer.save)()
+        
+        self.room.score_pool = F('score_pool') - 33
+        self.room.guess_count = F('guess_count') + 1
+        await sync_to_async(self.room.save)()
+        await sync_to_async(self.room.refresh_from_db)()
+        
+        await self.refresh_room_db()
+        return True
+        
     async def is_active(self) -> bool:
         room = await self.get_room()
         if not room or not room.is_active or room.current_players_count <= 0:
