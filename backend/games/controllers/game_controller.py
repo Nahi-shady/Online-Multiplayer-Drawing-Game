@@ -34,6 +34,9 @@ class GameController():
                 }
             )
             return True
+        
+        await self.update_leaderboard()
+        
         return False
     async def player_left(self, player_id: int) -> bool:
         player = await self.player_controller.get_player(player_id)
@@ -77,4 +80,20 @@ class GameController():
             if not await self.room_controller.remove_room():
                 logging.info("Room was not removed")
         
+        await self.update_leaderboard()
+        
         return True
+    
+    async def update_leaderboard(self) -> bool:
+        players = await self.player_controller.get_players_in_order()
+        
+        sorted_players = await sync_to_async(lambda: sorted(players, key=lambda x: -x.score))()
+        players_list = await sync_to_async(lambda: [player.to_dict() for player in sorted_players])()
+        
+        await channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'leaderboard_update',
+                'leaderboard': players_list
+            }
+        )
