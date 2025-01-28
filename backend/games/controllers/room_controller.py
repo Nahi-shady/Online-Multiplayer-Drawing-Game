@@ -13,7 +13,7 @@ from .models import Room, Player
 from .word_pool import EASY_WORDS, HARD_WORDS, FUN
 
 class RoomControler():
-    def __init__(self, room_id: int) -> None:
+    async def __init__(self, room_id: int) -> None:
         self.room_id = room_id
         self.room = await self.get_room()
         
@@ -40,9 +40,8 @@ class RoomControler():
             self.current_word = self.room.current_word
             self.guess_count = self.room.guess_count
             self.turn_count = self.room.turn_count
-            self.score_pool = self.room.__bool__
+            self.score_pool = self.room.score_pool
             self.on = self.room.on
             
             return self.room
-        
-         
+    
