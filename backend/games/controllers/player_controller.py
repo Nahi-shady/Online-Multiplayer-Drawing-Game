@@ -21,6 +21,7 @@ class PlayerController():
         except:
             logging.error('Player with id %s not found', player_id)
             return None
+    
     async def player_joined(self, player_id: int) -> bool:
         try:
             player = await self.get_player(player_id)
@@ -51,3 +52,6 @@ class PlayerController():
             return False
         
         return True
+    
+    async def get_players_in_order(self) -> list:
+        return await sync_to_async(lambda: list(Player.objects.filter(room_id=self.room_id).order_by("joined_at")))()
