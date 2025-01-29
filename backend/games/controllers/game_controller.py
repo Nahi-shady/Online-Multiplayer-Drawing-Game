@@ -100,7 +100,24 @@ class GameController():
         else:
             if message_type == 'guess':
                 await self.handle_guess(player_id, data.get('guess'))
-        
+            elif message_type == 'word_chosen':
+                word = data.get('word')
+                if not word:
+                    logging.warning('empty word choice')
+                    return False
+                
+                await self.room_controller.word_chosen(word)
+                
+                await sync_to_async(channel_layer.group_send)(
+                    self.room_group_name,{
+                        "type": "hint_update", 
+                        "hint": ''.join('-' if c != ' ' else ' ' for c in self.room_controller.current_word)})
+
+                await sync_to_async(channel_layer.group_send)(
+                    self.room_group_name,{
+                        "type": "clear_modal"})
+                
+            
     async def handle_guess(self, player_id: int, guess: str) -> bool:
         correct = False
         player = await self.player_controller.get_player(player_id)
@@ -122,6 +139,7 @@ class GameController():
                         {"type": "message",
                         "message": "all guess not handled"})
                     await self.start_next_turn()
+                    
             await self.update_leaderboard()
             
         await sync_to_async(channel_layer.group_send)(
