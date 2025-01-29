@@ -28,7 +28,7 @@ class RoomControler():
     async def refresh_room_db(self) -> Room:
         self.room = await self.get_room()
         if self.room:
-            self.drawer = None
+            self.drawer = self.room.current_drawer
             self.players_count = self.room.current_players_count
             self.current_word = self.room.current_word
             self.guess_count = self.room.guess_count
@@ -54,6 +54,7 @@ class RoomControler():
         
         return False
     
+    
     async def update_scores(self, player_id: int, guess: str) -> bool:
         player = self.get_player(player_id)
         if not self.on or player_id == self.drawer.id or player.guessed or guess.lower() != self.current_word.lower():
@@ -73,6 +74,18 @@ class RoomControler():
         
         await self.refresh_room_db()
         return True
+        
+    async def word_chosen(self, word: str) -> bool:
+        room = self.get_room()
+        if room:
+            room.current_word = word
+            await sync_to_async(room.save)()
+            
+            self.current_word = word
+            return True
+        else:
+            logging.error('Could not save drawer word choice to db')
+            return False
         
     async def is_active(self) -> bool:
         room = await self.get_room()
