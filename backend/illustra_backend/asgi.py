@@ -34,10 +34,6 @@ async def clear_player_and_room_data():
     except Exception as e:
         print(f"Error clearing Player and Room data: {e}")
 
-
-
-
-
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),  # Handles HTTP requests
     "websocket": AuthMiddlewareStack(
