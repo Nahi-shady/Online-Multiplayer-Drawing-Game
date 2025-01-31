@@ -33,8 +33,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
-    'users',
-    'chat',
     'games',
 ]
 
@@ -157,17 +155,9 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-# Custome Model configuration 
-AUTH_USER_MODEL = 'users.User'
+AUTH_USER_MODEL = 'auth.User'
 
 # ASGI setup for django channels
-
-# CHANNEL_LAYERS = {
-#     'default': {
-#         'BACKEND': 'channels.layers.InMemoryChannelLayer',  # Make sure the backend is correct
-#     },
-# }
 
 CHANNEL_LAYERS = {
     "default": {
