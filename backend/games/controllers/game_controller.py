@@ -10,15 +10,14 @@ from channels.layers import get_channel_layer
 
 from .player_controller import PlayerController
 from .room_controller import RoomController
-
-from .word_pool import EASY_WORDS, HARD_WORDS, FUN
+from .helper_functions import get_word_choices
 
 channel_layer = get_channel_layer()
 
 room_task = {}
 
 class GameController():
-    async def __init__(self, room_id):
+    def __init__(self, room_id):
         self.room_id = room_id
         self.room_group_name = f'room_{self.room_id}'
         
@@ -27,12 +26,13 @@ class GameController():
         
     async def player_joined(self, player_id: int) -> bool:
         if self.player_controller.player_joined(player_id):
-            await sync_to_async(channel_layer.group_send)(
+            await channel_layer.group_send(
                 self.room_group_name, {
                     'type': 'player_joined',
-                    'player_id': player_id
-                }
-            )
+                    'id': player_id})
+            
+            self.room_controller.current_players_count += 1
+            
             return True
         
         await self.update_leaderboard()
@@ -41,17 +41,17 @@ class GameController():
     
     async def player_left(self, player_id: int) -> bool:
         player = await self.player_controller.get_player(player_id)
-        drawer = await self.room_controller.get_drawer(player_id)
+        drawer = await self.room_controller.get_drawer()
         
-        if player and drawer and player == drawer:
-            await sync_to_async(channel_layer.group_send)(
+        if player and player == drawer:
+            await channel_layer.group_send(
                 self.room_group_name, {
                     "type": "skip_turn",
                  "message": "Drawer disconnected!"
                 })
             
             if self.room_id in room_task:
-                await self.channel_layer.group_send(
+                await channel_layer.group_send(
                     self.room_group_name,
                     {"type": "message", "message": "Drawer disconnected"}
                 )
@@ -59,19 +59,18 @@ class GameController():
                 room_task[self.room_id].cancel()
                 del room_task[self.room_id]
             else:
-                await self.channel_layer.group_send(
+                await channel_layer.group_send(
                 self.room_group_name,
                     {"type": "message",
                     "message": "not handled drawer leave!"}
                 )
-
         
         if await self.player_controller.remove_player(player_id):
-            await sync_to_async(channel_layer.group_send)(
+            self.room_controller.current_players_count -= 1
+            await channel_layer.group_send(
                 self.room_group_name,{
                     'type': 'player_left',
-                    'player_id': player_id
-                })
+                    'id': player_id})
         
         if not await self.room_controller.is_active():
             if self.room_id in room_task:
@@ -86,37 +85,47 @@ class GameController():
         return True
 
     async def handle_message(self, player_id: int, data: dict) -> bool:
+        if not data:
+            logging.error('Invalid message received')
+            return False
+        
         message_type = data.get('type')
         
         if message_type == 'drawing':
-            await sync_to_async(channel_layer.group_send)(
+            await channel_layer.group_send(
                 self.room_group_name,{
                     'type': 'drawing',
                     'data': data })
         elif message_type == 'clear_canvas':
-                await sync_to_async(channel_layer.group_send)(
+                await channel_layer.group_send(
                     self.room_group_name,{
                         'type': 'clear_canvas'})
         else:
+            await self.update_leaderboard()
             if message_type == 'guess':
                 await self.handle_guess(player_id, data.get('guess'))
             elif message_type == 'word_chosen':
                 word = data.get('word')
                 if not word:
-                    logging.warning('empty word choice')
+                    logging.error('empty word choice')
                     return False
                 
                 await self.room_controller.word_chosen(word)
-                
-                await sync_to_async(channel_layer.group_send)(
+
+                await channel_layer.group_send(
                     self.room_group_name,{
                         "type": "hint_update", 
                         "hint": ''.join('-' if c != ' ' else ' ' for c in self.room_controller.current_word)})
 
-                await sync_to_async(channel_layer.group_send)(
+                await channel_layer.group_send(
                     self.room_group_name,{
                         "type": "clear_modal"})
+            elif message_type == 'new_game':
+                await channel_layer.group_send(
+                    self.room_group_name,{
+                        'type': 'clear_canvas'})
                 
+                await self.start_new_game(player_id)
             
     async def handle_guess(self, player_id: int, guess: str) -> bool:
         correct = False
@@ -124,17 +133,19 @@ class GameController():
         
         if self.room_controller.update_scores(player_id, guess):
             correct = True
+            
             if self.room_controller.guess_count >= self.room_controller.current_players_count - 1:
                 if self.room_id in room_task:
+                    await channel_layer.group_send(
+                        self.room_group_name,{
+                            "type": "message",
+                            "message": "All guessed"})
+                    
                     room_task[self.room_id].cancel()
                     del room_task[self.room_id]
                     
-                    await sync_to_async(channel_layer.group_send)(
-                        self.room_group_name,
-                        {"type": "message",
-                        "message": "All guessed"})
                 else:
-                    await sync_to_async(channel_layer.group_send)(
+                    await channel_layer.group_send(
                         self.room_group_name,
                         {"type": "message",
                         "message": "all guess not handled"})
@@ -142,7 +153,7 @@ class GameController():
                     
             await self.update_leaderboard()
             
-        await sync_to_async(channel_layer.group_send)(
+        await channel_layer.group_send(
             self.room_group_name, {
                 'type': 'guess',
                 'name': player.name,
@@ -155,8 +166,137 @@ class GameController():
         sorted_players = await sync_to_async(lambda: sorted(players, key=lambda x: -x.score))()
         players_list = await sync_to_async(lambda: [player.to_dict() for player in sorted_players])()
         
-        await sync_to_async(channel_layer.group_send)(
+        await channel_layer.group_send(
             self.room_group_name,{
                 'type': 'leaderboard_update',
                 'leaderboard': players_list
             })
+    
+    async def start_new_game(self, player_id) -> bool:
+        if self.room_id in room_task:
+            await channel_layer.group_send(
+                self.room_group_name,{
+                    "type": 'message',
+                    'message': 'game has already started',})
+        
+            return  False
+        
+        if not await self.room_controller.prepare_room_for_new_round() or not await self.player_controller.reset_player_scores():
+            return False
+        
+        timeout = 10
+        # await self.send(json.dumps({"type": "new_game", "timeout": timeout})) # move to consumer class to avoid delay
+        await channel_layer.group_send(
+            self.room_group_name,
+            {"type": 'new_game',
+             'timeout': timeout,
+             'broadcaster_id': player_id})
+        
+        await asyncio.sleep(timeout)
+        
+        await self.start_next_turn()
+    
+    async def start_next_turn(self) -> None:
+        await self.room_controller.refresh_room_db()
+        
+        if not await self.room_controller.room_is_ready():
+            scoreboard = await self.player_controller.get_scoreboard()
+            await channel_layer.group_send(
+                self.room_group_name,{
+                    "type": "game_over",
+                    "scoreboard": scoreboard})
+        
+            # Clean up room tasks
+            if self.room_id in room_task:
+                room_task[self.room_id].cancel()
+                del room_task[self.room_id]
+            return
+        
+        # Update room state for the next turn
+        if not await self.room_controller.set_next_drawer() or not await self.player_controller.reset_players_guess_status() or not await self.room_controller.reset_room_for_new_turn():
+            logging.error("Something went wrong while resetting room and player for new turn")
+            return
+        
+        drawer_name, turn_count = self.room_controller.drawer.name, self.room_controller.turn_count
+        turn_timer = 30  
+        await channel_layer.group_send(
+            self.room_group_name,{
+                "type": "new_turn",
+                "drawer": drawer_name,
+                "turn": turn_count,
+                'timeout': turn_timer})
+        
+        # Get word choices
+        word_choices = await self.get_word_choices()
+        
+        timeout = 10
+        # Notify drawer with word choices
+        await channel_layer.group_send(
+            self.room_group_name,{
+                "type": "word_choices",
+                "choices": word_choices,
+                "drawer": drawer_name,
+                "timeout": timeout})
+        
+        await channel_layer.group_send(
+            self.room_group_name,{
+                "type": "drawer_choosing_word",
+                "timeout": timeout})
+    
+        # Clear canvas for the next turn
+        await channel_layer.group_send(
+            self.room_group_name,{
+                "type": "clear_canvas"})
+ 
+        # Create async task for turn timer
+        room_task[self.room_id] = asyncio.create_task(self.start_turn_timer(turn_timer))
+        
+    async def start_turn_timer(self, turn_timer):
+        try:
+            if not self.room_controller.room:
+                logging.error('Room does not exist, skipping turn')
+                return  # Exit if the room doesn't exist
+
+            for remaining in range(turn_timer, 0, -1):
+                logging.info(remaining, self.player_id)
+                await asyncio.sleep(1)
+                
+                if turn_timer - remaining == 10:
+                    await sync_to_async(self.room_controller.refresh_room_db)()
+                    if not self.room_controller.current_word:
+                        await channel_layer.group_send(
+                            self.room_group_name,
+                            {"type": "skip_turn", "message": "Drawer did not choose a word, skipping turn"}
+                        )
+                        break  # Skip the turn if no word is chosen
+                    
+                    await channel_layer.group_send(
+                        self.room_group_name, {
+                            "type": "clear_modal"})
+
+                if remaining == 15:
+                    await self.provide_hint(-1, self.room_controller.current_word)
+                if remaining == 10:
+                    await self.provide_hint(1, self.room_controller.current_word)
+
+        except asyncio.CancelledError:
+            logging.warning("Turn timer was cancelled.")
+            await channel_layer.group_send(
+                self.room_group_name,{
+                    "type": "message",
+                    "message": "Turn skipped due to cancellation!"})
+        
+        await self.start_next_turn()
+        
+    async def provide_hint(self, idx, selected_word):
+        
+        hint = ['-']*len(selected_word)
+        hint[-1] = selected_word[-1]
+        if idx == 1:
+            hint[1] = selected_word[1]
+            
+        await channel_layer.group_send(
+            self.room_group_name,{
+                "type": "hint_update",
+                "hint": ''.join(hint) })
+        
