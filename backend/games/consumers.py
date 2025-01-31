@@ -68,10 +68,10 @@ class GameConsumer(AsyncWebsocketConsumer):
                     {"type": "message",
                     "message": "not handled drawer leave!"}
                 )
-        else:
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {'type': 'player_left', 'id': self.player_id})
+                
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {'type': 'player_left', 'id': self.player_id})
             
         await self.remove_player()
         await sync_to_async(room.refresh_from_db)()
@@ -217,7 +217,7 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def start_next_turn(self):
         room = await self.get_room()
         if not room:
-            print("Room does not exist, skipping turn.")
+            print("Room does not exist")
             return  # Exit gracefully if the room doesn't exist
 
         # End game if final turn is played
