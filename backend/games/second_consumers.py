@@ -22,9 +22,10 @@ class GameConsumer(AsyncWebsocketConsumer):
             self.channel_name)
         
         await self.accept()
+        await self.game_controller.update_leaderboard()
         
         await self.send(json.dumps({"type": "ping"}))
-        logging.info('ping')
+        print('ping')
         
         if not await self.game_controller.player_joined(self.player_id):
             DenyConnection('Player could not join room')
@@ -39,10 +40,13 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
         
-        await self.game_controller.handle_message(self.player_id, data)
+        await self.game_controller.handle_message(self, self.player_id, data)
 
 
     # Player Events
+    async def send_for_one(self, message):
+        await self.send(message)
+    
     async def  message(self, event):
         await self.send(
             json.dumps({
@@ -70,10 +74,10 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.send(json.dumps({'type': 'leaderboard_update', 'leaderboard': event['leaderboard']}))
 
     async def new_game(self, event):
-        # if event.get("broadcaster_id") == self.player_id:
-        #     return  # Ignore the message if this instance is the broadcaster to avoid sending message twice.
+        if event.get("broadcaster_id") == self.player_id:
+            return  # Ignore the message if this instance is the broadcaster to avoid sending message twice.
         await self.send(json.dumps({"type": "new_game", "timeout": event["timeout"]}))
-        
+    
     async def new_turn(self, event):
         await self.send(
             json.dumps({"type": "new_turn", 
