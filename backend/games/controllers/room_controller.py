@@ -91,8 +91,9 @@ class RoomController():
     async def correct_guess(self, player_id: int, guess: str) -> bool:
         player = await self.get_player(player_id)
         room = await self.get_room()
+        current_drawer = await sync_to_async(lambda: room.current_drawer)()
         
-        if not player or not room.current_drawer or player_id == room.current_drawer.id or player.guessed or guess.lower() != room.current_word.lower():
+        if not player or not room.on or not current_drawer or player_id == current_drawer.id or player.guessed or guess.lower() != room.current_word.lower():
             print('guess not valid')
             return False
         
