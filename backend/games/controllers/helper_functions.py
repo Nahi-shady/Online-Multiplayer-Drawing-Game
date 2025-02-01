@@ -1,6 +1,8 @@
+import random
+
 from .word_pool import EASY_WORDS, HARD_WORDS, FUN
 
-async def get_word_choices(self):
+async def get_word_choices():
     word_1 = random.choice(EASY_WORDS)
     word_2 = random.choice(HARD_WORDS)
     word_3 = random.choice(FUN)
