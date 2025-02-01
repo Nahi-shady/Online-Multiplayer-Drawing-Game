@@ -17,7 +17,8 @@ channel_layer = get_channel_layer()
 room_task = {}
 
 class GameController():
-    def __init__(self, room_id):
+    def __init__(self, room_id, consumer=None):
+        self.consumer = consumer
         self.room_id = room_id
         self.room_group_name = f'room_{self.room_id}'
         
@@ -84,9 +85,9 @@ class GameController():
         
         return True
 
-    async def handle_message(self, player_id: int, data: dict) -> bool:
+    async def handle_message(self, consumer, player_id: int, data: dict) -> bool:
         if not data:
-            logging.error('Invalid message received')
+            print('Invalid message received')
             return False
         
         message_type = data.get('type')
@@ -107,7 +108,7 @@ class GameController():
             elif message_type == 'word_chosen':
                 word = data.get('word')
                 if not word:
-                    logging.error('empty word choice')
+                    print('empty word choice')
                     return False
                 
                 await self.room_controller.word_chosen(word)
@@ -125,13 +126,13 @@ class GameController():
                     self.room_group_name,{
                         'type': 'clear_canvas'})
                 
-                await self.start_new_game(player_id)
+                await self.start_new_game(consumer, player_id)
             
     async def handle_guess(self, player_id: int, guess: str) -> bool:
         correct = False
         player = await self.player_controller.get_player(player_id)
         
-        if self.room_controller.update_scores(player_id, guess):
+        if await self.room_controller.correct_guess(player_id, guess):
             correct = True
             
             if self.room_controller.guess_count >= self.room_controller.current_players_count - 1:
@@ -140,7 +141,6 @@ class GameController():
                         self.room_group_name,{
                             "type": "message",
                             "message": "All guessed"})
-                    
                     room_task[self.room_id].cancel()
                     del room_task[self.room_id]
                     
@@ -172,7 +172,7 @@ class GameController():
                 'leaderboard': players_list
             })
     
-    async def start_new_game(self, player_id) -> bool:
+    async def start_new_game(self, consumer, player_id) -> bool:
         if self.room_id in room_task:
             await channel_layer.group_send(
                 self.room_group_name,{
@@ -185,7 +185,8 @@ class GameController():
             return False
         
         timeout = 10
-        # await self.send(json.dumps({"type": "new_game", "timeout": timeout})) # move to consumer class to avoid delay
+        await consumer.send_for_one(json.dumps({"type": "new_game", "timeout": timeout})) # to avoid delay
+        
         await channel_layer.group_send(
             self.room_group_name,
             {"type": 'new_game',
@@ -197,9 +198,11 @@ class GameController():
         await self.start_next_turn()
     
     async def start_next_turn(self) -> None:
+        print("Starting next turn")
         await self.room_controller.refresh_room_db()
         
         if not await self.room_controller.room_is_ready():
+            print("Room is not ready")
             scoreboard = await self.player_controller.get_scoreboard()
             await channel_layer.group_send(
                 self.room_group_name,{
@@ -214,7 +217,7 @@ class GameController():
         
         # Update room state for the next turn
         if not await self.room_controller.set_next_drawer() or not await self.player_controller.reset_players_guess_status() or not await self.room_controller.reset_room_for_new_turn():
-            logging.error("Something went wrong while resetting room and player for new turn")
+            print("Something went wrong while resetting room and player for new turn")
             return
         
         drawer_name, turn_count = self.room_controller.drawer.name, self.room_controller.turn_count
@@ -227,7 +230,7 @@ class GameController():
                 'timeout': turn_timer})
         
         # Get word choices
-        word_choices = await self.get_word_choices()
+        word_choices = await get_word_choices()
         
         timeout = 10
         # Notify drawer with word choices
@@ -254,15 +257,15 @@ class GameController():
     async def start_turn_timer(self, turn_timer):
         try:
             if not self.room_controller.room:
-                logging.error('Room does not exist, skipping turn')
+                print('Room does not exist, skipping turn')
                 return  # Exit if the room doesn't exist
 
             for remaining in range(turn_timer, 0, -1):
-                logging.info(remaining, self.player_id)
+                print(remaining)
                 await asyncio.sleep(1)
                 
                 if turn_timer - remaining == 10:
-                    await sync_to_async(self.room_controller.refresh_room_db)()
+                    # await self.room_controller.refresh_room_db()
                     if not self.room_controller.current_word:
                         await channel_layer.group_send(
                             self.room_group_name,
@@ -278,14 +281,12 @@ class GameController():
                     await self.provide_hint(-1, self.room_controller.current_word)
                 if remaining == 10:
                     await self.provide_hint(1, self.room_controller.current_word)
-
         except asyncio.CancelledError:
-            logging.warning("Turn timer was cancelled.")
+            print("Turn timer was cancelled.")
             await channel_layer.group_send(
                 self.room_group_name,{
                     "type": "message",
                     "message": "Turn skipped due to cancellation!"})
-        
         await self.start_next_turn()
         
     async def provide_hint(self, idx, selected_word):
