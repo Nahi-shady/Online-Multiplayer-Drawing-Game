@@ -33,9 +33,10 @@ export async function joinRoom(csrfToken, player_name, room_code, room_type) {
             body: JSON.stringify({ name: player_name, unique_code: room_code, type: room_type }),
         });
         if (!response.ok) {
-            throw new Error(`Failed to join room: ${response.status}`);
+            const message = await response.json()
+            throw new Error(message.detail);
         }
-        return await  response.json();
+        return await response.json();
     } catch (error) {
         console.error("Error joining room:", error);
         throw error;
