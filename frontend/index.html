@@ -52,31 +52,14 @@
     <div class="form-container">
         <label for="username">Enter your username:</label>
         <input type="text" id="username" placeholder="Your username" required>
-
+    
         <label for="room">Room Code (optional):</label>
         <input type="text" id="room" placeholder="Room code to join private game">
-
+    
         <button id="join">Join Game</button>
+        <button id="create-private-room">Create Private Room</button>
     </div>
-
-    <script>
-        document.getElementById('join').addEventListener('click', () => {
-            const username = document.getElementById('username').value.trim();
-            const room = document.getElementById('room').value.trim();
-
-            if (!username || username.length >= 15) {
-                alert('Length of username must be between 1 and 10');
-                return;
-            }
-            if (room.length > 8) {
-                alert('Length of private room code must be less than 9');
-                return;
-            }
-
-            // Navigate to the game room
-            const roomParam = room ? `&room=${room}` : '';
-            window.location.href = `game_room.html?username=${encodeURIComponent(username)}${roomParam}`;
-        });
-    </script>
+    
+    <script type="module" src="scripts/player_data_handler.js"> </script>
 </body>
 </html>
