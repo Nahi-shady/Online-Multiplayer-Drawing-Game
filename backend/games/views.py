@@ -18,7 +18,6 @@ class GetCsrfTokenView(APIView):
     
     def get(self, request):
         token = get_token(request)
-        print(token)
         return Response({'csrfToken': token})   
 
 class CreateRoomView(APIView):
@@ -66,11 +65,13 @@ class JoinRoomView(APIView):
         if unique_code:
             if room_type == "private":
                 room = Room.objects.create_private_room(unique_code=unique_code)
+                if not room:
+                    return Response({"detail": "Can't use this unique code."}, status=status.HTTP_400_BAD_REQUEST)
             else:
                 room = Room.objects.get_private_room(unique_code=unique_code)
                 
             if not room:
-                return Response({"detail": "Private room with this code does not exist or is inactive."}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"detail": f"Private room with code {unique_code} does not exist or is inactive."}, status=status.HTTP_404_NOT_FOUND)
             
             if Player.objects.filter(name=name, room=room).count() > 0:
                 return Response({"detail": "Player with that name already exists."}, status=status.HTTP_400_BAD_REQUEST)
