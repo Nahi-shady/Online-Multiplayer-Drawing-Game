@@ -17,7 +17,9 @@ class GetCsrfTokenView(APIView):
     permission_classes = [AllowAny]
     
     def get(self, request):
-        return Response({'csrfToken': get_token(request)})   
+        token = get_token(request)
+        print(token)
+        return Response({'csrfToken': token})   
 
 class CreateRoomView(APIView):
     authentication_classes = []
@@ -55,13 +57,18 @@ class JoinRoomView(APIView):
     def post(self, request):
         name = request.data.get('name')
         unique_code = request.data.get('unique_code', None)
+        room_type = request.data.get('type', 'public')
 
         if not name:
             return Response({"detail": "Player name is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         room = None
         if unique_code:
-            room = Room.objects.get_private_room(unique_code=unique_code)
+            if room_type == "private":
+                room = Room.objects.create_private_room(unique_code=unique_code)
+            else:
+                room = Room.objects.get_private_room(unique_code=unique_code)
+                
             if not room:
                 return Response({"detail": "Private room with this code does not exist or is inactive."}, status=status.HTTP_404_NOT_FOUND)
             
