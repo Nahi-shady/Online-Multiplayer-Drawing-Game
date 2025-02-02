@@ -73,6 +73,10 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def leaderboard_update(self, event):
         await self.send(json.dumps({'type': 'leaderboard_update', 'leaderboard': event['leaderboard']}))
 
+    async def display_score(self, event):
+        print(event['scoreboard'])
+        await self.send(json.dumps({"type": "display_score", "timeout": event['timeout'], "scoreboard": event['scoreboard']}))
+    
     async def new_game(self, event):
         if event.get("broadcaster_id") == self.player_id:
             return  # Ignore the message if this instance is the broadcaster to avoid sending message twice.
