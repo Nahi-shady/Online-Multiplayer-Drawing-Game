@@ -1,6 +1,6 @@
 body {
   text-align: center;
-  background-color: #172e4b;
+  background-color: #8cc6c9;
   margin: 0;
   padding: 40px;
   max-height: 100vh;
@@ -84,17 +84,15 @@ ul {
 
 /* Specific Styles for Each Section */
 .left {
-  background-color: #73aaac;
-  border-radius: 0 0 0 30px;
+  background-color: #f7fcfc;
 }
 
 .middle {
-  background-color: #172e4b;
+  background-color: #f7fcfc;
 }
 
 .right {
-  background-color: #73aaac;
-  border-radius: 0 0 30px 0;
+  background-color: #f7fcfc;
 }
 
 
@@ -132,12 +130,12 @@ ul {
   border: 1px solid #ccc;
   border-radius: 5px;
   padding: 10px;
-  background-color: #e6eaee;
+  background-color: #f7fcfc;
 }
 
 #chat-input {
   width: 90%;
-  border: #fff;
+  border: 1px solid;
   padding: 5px;
   border-radius: 5px 5px 0 0;
 }
