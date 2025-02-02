@@ -85,7 +85,7 @@ class GameController():
         
         return True
 
-    async def handle_message(self, consumer, player_id: int, data: dict) -> bool:
+    async def handle_message(self, player_id: int, data: dict) -> bool:
         if not data:
             print('Invalid message received')
             return False
