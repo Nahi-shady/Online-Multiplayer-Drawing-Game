@@ -68,7 +68,7 @@ export default class WebSocketManager {
                 const modal = document.getElementById('new-game-modal');
                 const header = document.getElementById('timer');
                 modal.style.display = 'flex'; // Show the modal
-                
+                 
                 // Countdown logic
                 const countdown = setInterval(() => {
                     seconds--; // Decrease the seconds by 1
@@ -128,6 +128,30 @@ export default class WebSocketManager {
                     li.textContent = `${player.name}: ${player.score}`;
                     leaderboardList.appendChild(li);
                 });
+            } 
+            else if (data.type === 'display_score') {
+                const timeout = data.timeout;
+                const scoreboard = data.scoreboard;
+                const modal = document.getElementById('scoreboard-modal');
+
+                // Display scoreboard in the modal
+                const scoreboardList = document.getElementById('score-lists');
+                scoreboardList.innerHTML = ''; // Clear previous choice
+                
+                scoreboard.forEach(player => {
+                    const li = document.createElement('li');
+                    li.textContent = `${player.name}: ${player.score}`;
+                    
+                    scoreboardList.appendChild(li);
+                });
+
+                modal.style.display = 'flex'
+
+                setTimeout(() => {
+                    const modal = document.getElementById('scoreboard-modal');
+                    if (modal.style.display === 'flex') {
+                        modal.style.display = 'none';}
+                }, timeout * 1000);
             } 
             else if (data.type === 'word_choices' && this.drawer_name === this.playerName) {
                 const wordChoices = data.choices;
