@@ -17,8 +17,7 @@ channel_layer = get_channel_layer()
 room_task = {}
 
 class GameController():
-    def __init__(self, room_id, consumer=None):
-        self.consumer = consumer
+    def __init__(self, room_id):
         self.room_id = room_id
         self.room_group_name = f'room_{self.room_id}'
         
@@ -126,7 +125,7 @@ class GameController():
                     self.room_group_name,{
                         'type': 'clear_canvas'})
                 
-                await self.start_new_game(consumer, player_id)
+                await self.start_new_game(player_id)
             
     async def handle_guess(self, player_id: int, guess: str) -> bool:
         correct = False
