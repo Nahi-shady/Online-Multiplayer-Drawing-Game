@@ -172,7 +172,7 @@ class GameController():
                 'leaderboard': players_list
             })
     
-    async def start_new_game(self, consumer, player_id) -> bool:
+    async def start_new_game(self, player_id) -> bool:
         if self.room_id in room_task:
             await channel_layer.group_send(
                 self.room_group_name,{
@@ -185,17 +185,13 @@ class GameController():
             return False
         
         timeout = 10
-        await consumer.send_for_one(json.dumps({"type": "new_game", "timeout": timeout})) # to avoid delay
-        
         await channel_layer.group_send(
-            self.room_group_name,
-            {"type": 'new_game',
-             'timeout': timeout,
-             'broadcaster_id': player_id})
+            self.room_group_name,{
+                "type": 'new_game',
+                'timeout': timeout,
+                'broadcaster_id': player_id})
         
-        await asyncio.sleep(timeout)
-        
-        await self.start_next_turn()
+        asyncio.create_task(self.sleep_then_start_turn(timeout))
     
     async def start_next_turn(self) -> None:
         print("Starting next turn")
@@ -287,7 +283,16 @@ class GameController():
                 self.room_group_name,{
                     "type": "message",
                     "message": "Turn skipped due to cancellation!"})
-        await self.start_next_turn()
+
+        timeout = 5
+        scoreboard = await self.player_controller.get_scoreboard()
+        await channel_layer.group_send(
+                self.room_group_name, {
+                    "type": "display_score",
+                    "timeout": timeout,
+                    "scoreboard": scoreboard,})
+        
+        asyncio.create_task(self.sleep_then_start_turn(timeout))
         
     async def provide_hint(self, idx, selected_word):
         
@@ -300,4 +305,7 @@ class GameController():
             self.room_group_name,{
                 "type": "hint_update",
                 "hint": ''.join(hint) })
-        
+
+    async def sleep_then_start_turn(self, timeout):
+        await asyncio.sleep(timeout)
+        await self.start_next_turn()
