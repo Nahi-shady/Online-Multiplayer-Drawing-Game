@@ -40,13 +40,10 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
         
-        await self.game_controller.handle_message(self, self.player_id, data)
+        await self.game_controller.handle_message(self.player_id, data)
 
 
-    # Player Events
-    async def send_for_one(self, message):
-        await self.send(message)
-    
+    # Player Events   
     async def  message(self, event):
         await self.send(
             json.dumps({
@@ -78,8 +75,6 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.send(json.dumps({"type": "display_score", "timeout": event['timeout'], "scoreboard": event['scoreboard']}))
     
     async def new_game(self, event):
-        if event.get("broadcaster_id") == self.player_id:
-            return  # Ignore the message if this instance is the broadcaster to avoid sending message twice.
         await self.send(json.dumps({"type": "new_game", "timeout": event["timeout"]}))
     
     async def new_turn(self, event):
