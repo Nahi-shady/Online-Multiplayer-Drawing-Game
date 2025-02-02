@@ -10,7 +10,7 @@ from channels.exceptions import DenyConnection
 from django.db.models import F
 
 from .models import Room, Player
-from .word_pool import EASY_WORDS, HARD_WORDS, FUN
+from .controllers.word_pool import EASY_WORDS, HARD_WORDS, FUN
 
 room_task = {}
 
