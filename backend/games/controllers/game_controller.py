@@ -152,12 +152,17 @@ class GameController():
                     
             await self.update_leaderboard()
             
-        await channel_layer.group_send(
-            self.room_group_name, {
-                'type': 'guess',
-                'name': player.name,
-                'guess': guess,
-                'correct': correct})
+        if correct:
+            await channel_layer.group_send(
+                self.room_group_name,{
+                    "type": "guess",
+                    "name": player.name,})
+        else:
+            await channel_layer.group_send(
+                self.room_group_name, {
+                    'type': 'chat_message',
+                    'name': player.name,
+                    'message': guess,})
         
     async def update_leaderboard(self) -> bool:
         players = await self.player_controller.get_players_in_order()
