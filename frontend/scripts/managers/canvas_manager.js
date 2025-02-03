@@ -1,5 +1,4 @@
 // Canvas Manager Class
-
 export default class CanvasManager {
     constructor(wsManager) {
         this.wsManager = wsManager;
@@ -26,20 +25,26 @@ export default class CanvasManager {
     }
 
     resizeCanvas() {
+        const container = document.querySelector(".canvas-container");
+
+        // Save current drawing data before resizing
         const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
 
         const oldWidth = this.canvas.width;
         const oldHeight = this.canvas.height;
 
-        this.canvas.width = this.canvas.offsetWidth;
-        this.canvas.height = this.canvas.offsetWidth / 16 * 16; // Maintain 16:9 aspect ratio
+        // Set new dimensions (Maintaining 4:3 Aspect Ratio)
+        this.canvas.width = container.clientWidth;
+        this.canvas.height = this.canvas.width * (3 / 4);
 
+        // Scale drawings proportionally
         const scaleX = this.canvas.width / oldWidth;
         const scaleY = this.canvas.height / oldHeight;
 
-        this.ctx.scale(scaleX, scaleY);
+        this.ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
         this.ctx.putImageData(imageData, 0, 0);
 
+        // Reset transform after scaling
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
@@ -130,19 +135,19 @@ export default class CanvasManager {
     
     websocketActions(event) {
         if (event.type === "drawing") {
-            this.renderIncomingDrawing(event)
+            this.renderIncomingDrawing(event);
         }
         else if (event.type === "clear_canvas") {
-            this.eraseDrawing()
+            this.eraseDrawing();
         }
     }
 
     sendClearCanvas() {
         if (this.wsManager.drawer_name !== this.wsManager.playerName) {
-            return
+            return;
         }
-        const data = {type: "clear_canvas"}
-        this.wsManager.sendMessage(data)
+        const data = { type: "clear_canvas" };
+        this.wsManager.sendMessage(data);
     }
 
     eraseDrawing() {
