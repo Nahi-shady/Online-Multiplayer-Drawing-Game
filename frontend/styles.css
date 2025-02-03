@@ -55,6 +55,7 @@ ul {
   background-color: rgba(0, 0, 0, 0.5);
   justify-content: center;
   align-items: center;
+  z-index: 1000;
 }
 
 .modal-content {
@@ -101,20 +102,22 @@ ul {
   background-color: #fff;
   border: 1px solid #ccc;
   border-radius: 5px;
-  
-  /* Maintain responsive sizing */
-  width: 100%;
-  height: auto;
-  max-width: 100%; /* Prevent exceeding container width */
-  aspect-ratio: 4 / 3; /* Keep aspect ratio consistent */
+  display: block; /* Prevent extra spacing issues */
+  z-index: 1;
 }
 
 .canvas-container {
-  flex: 1; /* Take up available space in the middle section */
+  flex: 1;
   display: flex;
-  justify-content: center; /* Center canvas horizontally */
-  align-items: center; /* Center canvas vertically */
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 800px; /* Adjust as needed */
+  aspect-ratio: 4 / 3;
+  position: relative;
+  overflow: hidden; /* Ensure border-radius works properly */
 }
+
 
 #controls {
   flex: 0 0 auto; /* Let the controls take up the remaining space */
