@@ -135,8 +135,7 @@ class RoomController():
         room.on = True
         await sync_to_async(room.save)()
         
-        self.turn_count = 0
-        self.on = True
+        self.refresh_room_db()
         
         return True
     
@@ -146,7 +145,7 @@ class RoomController():
             print("Room doesn't exist")
             return False
         
-        if room.turn_count >= 5:
+        if room.turn_count >= room.max_turn:
             room.on = False
             self.on = False
             await sync_to_async(room.save)()
