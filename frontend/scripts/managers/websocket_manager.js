@@ -36,6 +36,11 @@ export default class WebSocketManager {
         counterElem.textContent = this.turn_count
           ? `Round: ${this.turn_count}`
           : "Round:";
+      // Hide the start button if the game has started.
+      const startButton = document.getElementById("start-game");
+      if (this.game_started && startButton) {
+        startButton.style.display = "none";
+      }
     }
   
     onMessage(event) {
@@ -55,11 +60,6 @@ export default class WebSocketManager {
         } else if (chatMessageTypes.has(data.type)) {
           this.chatMessageHandler(data);
           this.updateHeader();
-          // Hide the start button if the game has started.
-          const startButton = document.getElementById("start-game");
-          if (this.game_started && startButton) {
-            startButton.style.display = "none";
-          }
         } else {
           switch (data.type) {
             case "ping":
@@ -70,6 +70,9 @@ export default class WebSocketManager {
               break;
             case "new_turn":
               this.handleNewTurn(data);
+              break;
+            case "game_over":
+              this.handleDisplayFinalScore(data);
               break;
             case "hint_update":
               this.current_word = data.hint;
@@ -168,6 +171,33 @@ export default class WebSocketManager {
       });
     }
   
+    // Displays Final score.
+    handleDisplayFinalScore(data) {
+      const timeout = data.timeout;
+      const scoreboard = data.scoreboard;
+      const modal = document.getElementById("scoreboard-modal");
+      const scoreboardList = document.getElementById("score-lists");
+      if (scoreboardList) scoreboardList.innerHTML = "";
+  
+      const guessWord = document.getElementById("guess-word");
+      if (guessWord) guessWord.textContent = `Final Stand!`;
+  
+      scoreboard.forEach((player) => {
+        const li = document.createElement("li");
+        li.textContent = `${player.name}: ${player.score}`;
+        if (scoreboardList) scoreboardList.appendChild(li);
+      });
+  
+      if (modal) {
+        modal.style.display = "flex";
+        setTimeout(() => {
+          if (modal && modal.style.display === "flex") {
+            modal.style.display = "none";
+          }
+        }, timeout * 1000);
+      }
+    }
+
     // Displays the score modal.
     handleDisplayScore(data) {
       const timeout = data.timeout;
