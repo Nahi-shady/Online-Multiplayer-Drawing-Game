@@ -40,7 +40,7 @@ export default class WebSocketManager {
     onMessage(event) {
         try {
             const data = JSON.parse(event.data);
-            const chatMessageTypes = new Set(["guess", "player_joined", "player_left"]);
+            const chatMessageTypes = new Set(["guess", "chat_message", "player_joined", "player_left"]);
             const drawingMessageTypes = new Set(["drawing", "clear_canvas"])
 
             if (drawingMessageTypes.has(data.type)) {
