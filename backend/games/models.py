@@ -17,6 +17,7 @@ class Room(models.Model):
     score_pool = models.IntegerField(default=450, blank=True, null=False)
     on = models.BooleanField(default=False)
     
+    max_turn = models.IntegerField(default=5, blank=False, null=False)
     max_players = models.IntegerField(default=7)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
