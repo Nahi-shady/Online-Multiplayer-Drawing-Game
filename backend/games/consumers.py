@@ -77,7 +77,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def display_score(self, event):
         print(event['scoreboard'])
-        await self.send(json.dumps({"type": "display_score", "timeout": event['timeout'], "scoreboard": event['scoreboard']}))
+        await self.send(json.dumps({"type": "display_score", "timeout": event['timeout'], "word": event["word"], "scoreboard": event['scoreboard']}))
     
     async def new_game(self, event):
         await self.send(json.dumps({"type": "new_game", "timeout": event["timeout"]}))
