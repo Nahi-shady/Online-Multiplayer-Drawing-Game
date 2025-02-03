@@ -60,7 +60,10 @@ class PlayerController():
     async def get_scoreboard(self) -> list:
         players = await sync_to_async(lambda: list(Player.objects.filter(room_id=self.room_id).order_by("score")))()
 
-        return [{"name": player.name, "score":player.score} for player in players]
+        sorted_players = await sync_to_async(lambda: sorted(players, key=lambda x: -x.score))()
+        players_list = await sync_to_async(lambda: [player.to_dict() for player in sorted_players])()
+       
+        return players_list
         
     async def reset_player_scores(self) -> bool:
         players = await self.get_players_in_order()
