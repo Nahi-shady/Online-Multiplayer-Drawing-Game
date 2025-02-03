@@ -294,6 +294,7 @@ class GameController():
                 self.room_group_name, {
                     "type": "display_score",
                     "timeout": timeout,
+                    "word": self.room_controller.current_word,
                     "scoreboard": scoreboard,})
         
         asyncio.create_task(self.sleep_then_start_turn(timeout))
