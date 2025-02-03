@@ -125,7 +125,7 @@ class GameController():
                     self.room_group_name,{
                         'type': 'clear_canvas'})
                 
-                await self.start_new_game(player_id)
+                await self.start_new_game()
             
     async def handle_guess(self, player_id: int, guess: str) -> bool:
         correct = False
@@ -165,18 +165,15 @@ class GameController():
                     'message': guess,})
         
     async def update_leaderboard(self) -> bool:
-        players = await self.player_controller.get_players_in_order()
-        
-        sorted_players = await sync_to_async(lambda: sorted(players, key=lambda x: -x.score))()
-        players_list = await sync_to_async(lambda: [player.to_dict() for player in sorted_players])()
-        
+        players = await self.player_controller.get_scoreboard()
+ 
         await channel_layer.group_send(
             self.room_group_name,{
                 'type': 'leaderboard_update',
-                'leaderboard': players_list
+                'leaderboard': players
             })
     
-    async def start_new_game(self, player_id) -> bool:
+    async def start_new_game(self) -> bool:
         if self.room_id in room_task:
             await channel_layer.group_send(
                 self.room_group_name,{
@@ -188,12 +185,11 @@ class GameController():
         if not await self.room_controller.prepare_room_for_new_round() or not await self.player_controller.reset_player_scores():
             return False
         
-        timeout = 10
+        timeout = 5
         await channel_layer.group_send(
             self.room_group_name,{
                 "type": 'new_game',
-                'timeout': timeout,
-                'broadcaster_id': player_id})
+                'timeout': timeout,})
         
         asyncio.create_task(self.sleep_then_start_turn(timeout))
     
@@ -202,17 +198,21 @@ class GameController():
         await self.room_controller.refresh_room_db()
         
         if not await self.room_controller.room_is_ready():
-            print("Room is not ready")
+            print("Room Ended")
             scoreboard = await self.player_controller.get_scoreboard()
             await channel_layer.group_send(
                 self.room_group_name,{
                     "type": "game_over",
                     "scoreboard": scoreboard})
-        
+    
+            timeout = 10
+            asyncio.create_task(self.sleep_then_start_new_game(timeout))
+            
             # Clean up room tasks
             if self.room_id in room_task:
                 room_task[self.room_id].cancel()
                 del room_task[self.room_id]
+                
             return
         
         # Update room state for the next turn
@@ -314,3 +314,8 @@ class GameController():
     async def sleep_then_start_turn(self, timeout):
         await asyncio.sleep(timeout)
         await self.start_next_turn()
+
+    async def sleep_then_start_new_game(self, timeout):
+        await asyncio.sleep(timeout)
+        await self.start_new_game()
+        
