@@ -85,32 +85,34 @@ export default class WebSocketManager {
                     }   
                 }, 1000);
             }
-            else if (data.type === "new_turn") {
+            else if (data.type === "new_turn") { 
                 this.drawer_name = data.drawer;
                 this.turn_count = data.turn;
                 this.skip_turn = false;
                 this.updateHeader();
-
+            
                 let seconds = data.timeout; // Start countdown from this value
                 const header = document.getElementById('countdown');
                 header.textContent = seconds;
-                
-                // Countdown logic
-                const countdown = setInterval(() => {
-                    seconds--; // Decrease the seconds by 1
-                    header.textContent = seconds; // Update the timer display
             
-                    // Stop the timer at 0
-                    if (seconds <= 2  || this.skip_turn) {
-                        clearInterval(countdown);
-                        console.log(this.skip_turn)
-                        setTimeout(() => {
-                            header.textContent = "timeout";
-                        }, 2000)            
+                // Clear previous countdown if it exists
+                if (this.countdownInterval) {
+                    clearInterval(this.countdownInterval);
+                }
+            
+                // Start new countdown
+                this.countdownInterval = setInterval(() => {
+                    if (this.skip_turn || seconds <= 0) {
+                        clearInterval(this.countdownInterval); // Stop countdown
+                        header.textContent = "timeout";
+                        return;
                     }
+            
+                    seconds--; // Decrease seconds
+                    header.textContent = seconds; // Update display
                 }, 1000);
-                header.textContent = 0;
             }
+            
             else if (data.type === "hint_update") {
                 this.current_word = data.hint;
                 this.updateHeader();
