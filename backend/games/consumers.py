@@ -55,10 +55,15 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.send(
             json.dumps({
                 'type': 'guess',
-                'guess': event['guess'],
-                'name': event['name'],
-                'correct': event['correct']}
-                ))
+                'name': event['name'], }))
+        
+    async def  chat_message(self, event):
+        await self.send(
+            json.dumps({
+                'type': 'chat_message',
+                'message': event['message'],
+                'name': event['name'], }))
+
 
     async def player_joined(self, event):
         await self.send(json.dumps({'type': 'player_joined', 'id': event['id']}))
