@@ -138,6 +138,9 @@ export default class WebSocketManager {
                 const scoreboardList = document.getElementById('score-lists');
                 scoreboardList.innerHTML = ''; // Clear previous choice
                 
+                const guessWord = document.getElementById('guess-word');
+                guessWord.textContent = `The word is: ${data.word}`;
+
                 scoreboard.forEach(player => {
                     const li = document.createElement('li');
                     li.textContent = `${player.name}: ${player.score}`;
