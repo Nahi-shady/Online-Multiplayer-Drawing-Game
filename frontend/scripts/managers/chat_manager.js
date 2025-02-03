@@ -44,10 +44,10 @@ export default class ChatManager {
         const messageElement = document.createElement("div");
         messageElement.className = `chat-message`;
         if (message.type === "guess") {
-            messageElement.textContent = `${message.name}: ${message.guess}`;
-            if (message.correct === true) {    
-                messageElement.className = 'green-text';
-            }
+            messageElement.textContent = `${message.name}: guessed correctly.`;   
+            messageElement.className = 'green-text';
+        } else if (message.type === "chat_message") {
+            messageElement.textContent = `${message.name}: ${message.message}`; 
         } else if (message.type === "player_joined") {
             messageElement.textContent = `${message.id} joined room`;
             messageElement.className = 'green-text';
