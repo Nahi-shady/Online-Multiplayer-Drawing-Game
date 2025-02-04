@@ -55,7 +55,6 @@ export default class WebSocketManager {
         const drawingMessageTypes = new Set(["drawing", "clear_canvas"]);
   
         if (drawingMessageTypes.has(data.type)) {
-          console.log(this.drawer_name, this.playerName);
           this.canvasMessageHandler(data);
         } else if (chatMessageTypes.has(data.type)) {
           this.chatMessageHandler(data);
@@ -69,6 +68,7 @@ export default class WebSocketManager {
               this.handleNewGame(data);
               break;
             case "new_turn":
+              console.log('Drawer: ', this.drawer_name,);
               this.handleNewTurn(data);
               break;
             case "game_over":
