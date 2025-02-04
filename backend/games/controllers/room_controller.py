@@ -83,7 +83,7 @@ class RoomController():
         return False  
     
     async def get_players_in_order(self) -> list:
-        players = self.players if self.players else  await sync_to_async(lambda: list(Player.objects.filter(room_id=self.room_id).order_by("joined_at")))()
+        players = await sync_to_async(lambda: list(Player.objects.filter(room_id=self.room_id).order_by("joined_at")))()
         self.players = players
         
         return players
@@ -156,8 +156,8 @@ class RoomController():
         return True
       
     async def set_next_drawer(self) -> bool:
-        room = self.room if self.room else await self.get_room()
-        players = self.players if self.players else await self.get_players_in_order()
+        room = await self.get_room()
+        players = await self.get_players_in_order()
         drawer = await sync_to_async(lambda: room.current_drawer)()
         
         if players:
@@ -171,13 +171,14 @@ class RoomController():
             print("Couldn't set drawer for turn")
             return False
         
-        room.current_drawer = new_drawer
-        self.drawer = new_drawer
-        await sync_to_async(room.save)()
+        if new_drawer:
+            room.current_drawer = new_drawer
+            self.drawer = new_drawer
+            await sync_to_async(room.save)()
+            
+            print(f"Drawer: {self.drawer.name}")
         
-        print(f"Drawer: {self.drawer.name}")
-        
-        return True
+            return True
     
     async def reset_room_for_new_turn(self) -> bool:
         room = await self.get_room()
