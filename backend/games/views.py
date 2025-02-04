@@ -20,36 +20,7 @@ class GetCsrfTokenView(APIView):
         token = get_token(request)
         return Response({'csrfToken': token})   
 
-class CreateRoomView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
-    
-    def post(self, request):
-        name = request.data.get('name')
-        if not name:
-            return Response({"detail": "Player name is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        is_private = request.data.get('is_private', True)
-        max_players = request.data.get('max_players', 14)
-
-        if max_players > 14:
-            return Response({"detail": "Maximum players can't exceed 14."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        room = (
-            Room.objects.create_private_room(max_players=max_players)
-            if is_private else
-            Room.objects.create_public_room(max_players=max_players)
-        )
-        
-        player = Player.objects.create(name=name, room=room)
-        room.current_players_count += 1
-        room.save()
-        
-        serializer = RoomSerializer(room)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-
-class JoinRoomView(APIView):
+class RoomView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
     
