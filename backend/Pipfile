@@ -20,6 +20,9 @@ channels-redis = "*"
 redis = "*"
 channels = "*"
 django-redis = "*"
+python-decouple = "*"
+dj-database-url = "*"
+whitenoise = "*"
 
 [dev-packages]
 
