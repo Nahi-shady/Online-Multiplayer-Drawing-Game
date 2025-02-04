@@ -24,7 +24,7 @@ export async function fetchCsrfToken() {
 // Utility to join a room
 export async function joinRoom(csrfToken, player_name, room_code, room_type) {
     try {
-        const response = await fetch(`${API_BASE_URL}/join-room`, {
+        const response = await fetch(`${API_BASE_URL}/rooms`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
