@@ -9,8 +9,8 @@ from django.apps import apps
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 
-from ..games.models import Player, Room
-from ..games import routing
+from games.models import Player, Room
+from games import routing
 
 async def lifespan(scope, receive, send):
     if scope['type'] == 'lifespan':
