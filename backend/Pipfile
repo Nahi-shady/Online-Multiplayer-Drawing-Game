@@ -23,6 +23,7 @@ django-redis = "*"
 python-decouple = "*"
 dj-database-url = "*"
 whitenoise = "*"
+gunicorn = "*"
 
 [dev-packages]
 
