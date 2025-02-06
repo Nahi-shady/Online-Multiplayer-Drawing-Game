@@ -1,6 +1,5 @@
 from django.contrib import admin
 from django.urls import path, include
-from games import urls
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -8,7 +7,7 @@ from rest_framework_simplejwt.views import (
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('games/', include('urls')),
+    path('games/', include('games.urls')),
     path('api/token/refresh', TokenRefreshView.as_view(), name='token_refresh'),
 ]
 
