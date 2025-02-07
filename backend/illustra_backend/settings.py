@@ -63,14 +63,12 @@ WSGI_APPLICATION = 'illustra_backend.wsgi.application'
 ASGI_APPLICATION = 'illustra_backend.asgi.application'
 
 # Database configuration using DATABASE_URL
-PRODUCTION = config('PRODUCTION')
+PRODUCTION = config('PRODUCTION', False)
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default='postgresql://postgres:wCePlCXAwKetkjhwuQkXWLnaFJWVGbGd@postgres.railway.internal:5432/railway'
-    )
+        'default': dj_database_url.config(default=config('DATABASE_URL'),
+                )
 }
-
 
 if not PRODUCTION:
     DATABASES = {
