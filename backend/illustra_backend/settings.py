@@ -144,10 +144,10 @@ CHANNEL_LAYERS = {
 }
 
 # CORS configuration
-CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:5500",
-]
-CORS_ALLOW_CREDENTIALS = True
+CORS_ORIGIN_ALLOW_ALL = False
+CORS_ORIGIN_WHITELIST = (
+       'http://127.0.0.1:5500',
+)
 
 # Update CSRF trusted origins for production as needed
 CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:5500", "https://guessit.up.railway.app"]
