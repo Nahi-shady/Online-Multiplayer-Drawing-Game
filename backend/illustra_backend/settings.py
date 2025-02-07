@@ -12,7 +12,7 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = False
 
 # Update ALLOWED_HOSTS for production
-ALLOWED_HOSTS = ["127.0.0.1", ".railway.app"]
+ALLOWED_HOSTS = ["127.0.0.1", "guessit.up.railway.app"]
 
 INSTALLED_APPS = [
     'channels',
