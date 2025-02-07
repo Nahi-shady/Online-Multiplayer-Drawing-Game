@@ -66,20 +66,21 @@ ASGI_APPLICATION = 'illustra_backend.asgi.application'
 PRODUCTION = True 
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('NAME'),
-        'USER': config('USER'),
-        'PASSWORD': config('PASSWORD'),
-        'HOST': config('HOST', 'localhost'),
-        'PORT': config('PORT', '5432'),
-    }
-}
-
-if PRODUCTION:
-    DATABASES = {
         'default': dj_database_url.config(default=config('DATABASE_URL'))
 }
+
+if not PRODUCTION:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('NAME'),
+            'USER': config('USER'),
+            'PASSWORD': config('PASSWORD'),
+            'HOST': config('HOST', 'localhost'),
+            'PORT': config('PORT', '5432'),
+        }
+    }
+
 
 
 AUTH_PASSWORD_VALIDATORS = [
