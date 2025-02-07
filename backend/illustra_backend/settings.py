@@ -66,8 +66,11 @@ ASGI_APPLICATION = 'illustra_backend.asgi.application'
 PRODUCTION = config('PRODUCTION')
 
 DATABASES = {
-    'default': 'postgresql://postgres:wCePlCXAwKetkjhwuQkXWLnaFJWVGbGd@postgres.railway.internal:5432/railway',
+    'default': dj_database_url.config(
+        default='postgresql://postgres:wCePlCXAwKetkjhwuQkXWLnaFJWVGbGd@postgres.railway.internal:5432/railway'
+    )
 }
+
 
 if not PRODUCTION:
     DATABASES = {
