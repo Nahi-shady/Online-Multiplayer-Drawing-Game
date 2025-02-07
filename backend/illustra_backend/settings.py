@@ -148,4 +148,4 @@ CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
 # Update CSRF trusted origins for production as needed
-CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:5500"]
+CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:5500", "https://guessit.up.railway.app"]
