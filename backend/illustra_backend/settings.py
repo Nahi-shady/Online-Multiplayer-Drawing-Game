@@ -66,7 +66,8 @@ ASGI_APPLICATION = 'illustra_backend.asgi.application'
 PRODUCTION = True 
 
 DATABASES = {
-        'default': dj_database_url.config(default=config('DATABASE_URL'))
+        'default': dj_database_url.config(default=config('DATABASE_URL'),
+                ssl_require=True)
 }
 
 if not PRODUCTION:
