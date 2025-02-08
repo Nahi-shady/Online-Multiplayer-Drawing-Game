@@ -1,11 +1,15 @@
 // Configuration
-const API_BASE_URL = "http://127.0.0.1:8000/games";
+const API_BASE_URL = "https://guessit.up.railway.app";
 
 // Utility to fetch CSRF token
 export async function fetchCsrfToken() {
     try {
         const response = await fetch(`${API_BASE_URL}/get-csrf-token/`, {
+            method: "GET",
             credentials: 'include', // Ensures cookies (CSRF token) are sent
+            headers: {
+                "Content-Type": "application/json",
+            },
         });
 
         if (!response.ok) {
@@ -24,7 +28,7 @@ export async function fetchCsrfToken() {
 // Utility to join a room
 export async function joinRoom(csrfToken, player_name, room_code, room_type) {
     try {
-        const response = await fetch(`${API_BASE_URL}/rooms`, {
+        const response = await fetch(`${API_BASE_URL}/rooms/`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
