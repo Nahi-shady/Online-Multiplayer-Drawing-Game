@@ -25,7 +25,6 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.game_controller.update_leaderboard()
         
         await self.send(json.dumps({"type": "ping"}))
-        print('ping')
         
         if not await self.game_controller.player_joined(self.player_id):
             DenyConnection('Player could not join room')

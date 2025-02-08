@@ -1,5 +1,5 @@
 import random
-import logging
+# import logging
 
 from asgiref.sync import sync_to_async
 import asyncio
@@ -16,7 +16,7 @@ class PlayerController():
         try:
             return await sync_to_async(Player.objects.get)(id=player_id)
         except:
-            logging.error('Player with id %s not found', player_id)
+            # logging.error('Player with id %s not found', player_id)
             return None
     
     async def player_joined(self, player_id: int) -> bool:
@@ -28,7 +28,7 @@ class PlayerController():
             player.is_active = True
             await player.save()
         except Player.DoesNotExist:
-            logging.error(f'Player with id {player_id} does not exist.')
+            # logging.error(f'Player with id {player_id} does not exist.')
             return False
         
         return True
@@ -46,10 +46,10 @@ class PlayerController():
             
             await sync_to_async(player.delete)()
         except Player.DoesNotExist:
-            logging.error(f'Player with id {player_id} does not exist.')
+            # logging.error(f'Player with id {player_id} does not exist.')
             return False
         except Room.DoesNotExist:
-            logging.error(f'Room with id {player_id} does not exist.')
+            # logging.error(f'Room with id {player_id} does not exist.')
             return False
         
         return True
@@ -79,7 +79,7 @@ class PlayerController():
     async def reset_players_guess_status(self) -> bool:
         players = await self.get_players_in_order()
         if not players:
-            logging.error("Could not find players in order to reset players guess status")
+            # logging.error("Could not find players in order to reset players guess status")
             return False
         
         for player in players:

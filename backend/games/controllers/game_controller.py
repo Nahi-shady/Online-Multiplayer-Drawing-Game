@@ -86,7 +86,7 @@ class GameController():
 
     async def handle_message(self, player_id: int, data: dict) -> bool:
         if not data:
-            print('Invalid message received')
+            # print('Invalid message received')
             return False
         
         message_type = data.get('type')
@@ -107,7 +107,7 @@ class GameController():
             elif message_type == 'word_chosen':
                 word = data.get('word')
                 if not word:
-                    print('empty word choice')
+                    # print('empty word choice')
                     return False
                 
                 await self.room_controller.word_chosen(word)
@@ -194,11 +194,11 @@ class GameController():
         asyncio.create_task(self.sleep_then_start_turn(timeout))
     
     async def start_next_turn(self) -> None:
-        print("Starting next turn")
+        # print("Starting next turn")
         await self.room_controller.refresh_room_db()
         
         if not await self.room_controller.room_is_ready():
-            print("Room Ended")
+            # print("Room Ended")
             scoreboard = await self.player_controller.get_scoreboard()
             await channel_layer.group_send(
                 self.room_group_name,{
@@ -217,7 +217,7 @@ class GameController():
         
         # Update room state for the next turn
         if not await self.room_controller.set_next_drawer() or not await self.player_controller.reset_players_guess_status() or not await self.room_controller.reset_room_for_new_turn():
-            print("Something went wrong while resetting room and player for new turn")
+            # print("Something went wrong while resetting room and player for new turn")
             return
         
         drawer_name, turn_count = self.room_controller.drawer.name, self.room_controller.turn_count
@@ -257,11 +257,11 @@ class GameController():
     async def start_turn_timer(self, turn_timer):
         try:
             if not self.room_controller.room:
-                print('Room does not exist, skipping turn')
+                # print('Room does not exist, skipping turn')
                 return  # Exit if the room doesn't exist
 
             for remaining in range(turn_timer, 0, -1):
-                print(remaining)
+                # print(remaining)
                 await asyncio.sleep(1)
                 
                 if turn_timer - remaining == 10:
@@ -282,7 +282,7 @@ class GameController():
                 if remaining == 10:
                     await self.provide_hint(1, self.room_controller.current_word)
         except asyncio.CancelledError:
-            print("Turn timer was cancelled.")
+            # print("Turn timer was cancelled.")
             await channel_layer.group_send(
                 self.room_group_name,{
                     "type": "message",

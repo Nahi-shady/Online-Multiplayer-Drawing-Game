@@ -46,7 +46,7 @@ class RoomController():
         try:
             return await sync_to_async(Player.objects.get)(id=player_id)
         except:
-            print('Player with id %s not found', player_id)
+            # print('Player with id %s not found', player_id)
             return None
     
     async def get_room(self) -> Room:
@@ -55,7 +55,7 @@ class RoomController():
             self.refresh_room_db(room)
             return room
         except Room.DoesNotExist:
-            print('Room with id %s not found', self.room_id)
+            # print('Room with id %s not found', self.room_id)
             return None
     
     async def get_drawer(self) -> Player:
@@ -94,7 +94,7 @@ class RoomController():
         current_drawer = await sync_to_async(lambda: room.current_drawer)()
         
         if not player or not room.on or not current_drawer or player_id == current_drawer.id or player.guessed or guess.lower() != room.current_word.lower():
-            print('guess not valid')
+            # print('guess not valid')
             return False
         
         player.score = F('score') + room.score_pool
@@ -115,7 +115,7 @@ class RoomController():
     async def word_chosen(self, word: str) -> bool:
         room = self.room if self.room else await self.get_room()
         if not room:
-            print('Could not save drawer word choice to db')
+            # print('Could not save drawer word choice to db')
             return False
         
         room.current_word = word
@@ -128,7 +128,7 @@ class RoomController():
     async def prepare_room_for_new_round(self) -> bool:
         room = self.room if self.room else await self.get_room()
         if room.current_players_count <= 1:
-            print("Not enough players have joined")
+            # print("Not enough players have joined")
             return False
         
         room.turn_count = 0
@@ -142,7 +142,7 @@ class RoomController():
     async def room_is_ready(self) -> bool:
         room = self.room if self.room else await self.get_room()
         if not room:
-            print("Room doesn't exist")
+            # print("Room doesn't exist")
             return False
         
         if room.turn_count >= room.max_turn:
@@ -150,7 +150,7 @@ class RoomController():
             self.on = False
             await sync_to_async(room.save)()
             
-            print("Last turn is played")
+            # print("Last turn is played")
             return False
         
         return True
@@ -168,7 +168,7 @@ class RoomController():
             else:
                 new_drawer = players[0]
         else:
-            print("Couldn't set drawer for turn")
+            # print("Couldn't set drawer for turn")
             return False
         
         if new_drawer:
@@ -176,7 +176,7 @@ class RoomController():
             self.drawer = new_drawer
             await sync_to_async(room.save)()
             
-            print(f"Drawer: {self.drawer.name}")
+            # print(f"Drawer: {self.drawer.name}")
         
             return True
     
@@ -191,11 +191,11 @@ class RoomController():
             await sync_to_async(room.save)()
             await sync_to_async(room.refresh_from_db)()
         except:
-            print("Couldn't reset room for new turn")
+            # print("Couldn't reset room for new turn")
             return False  
               
         await self.refresh_room_db(room)
         
-        print(f"Turn {self.turn_count}")
+        # print(f"Turn {self.turn_count}")
         
         return True
