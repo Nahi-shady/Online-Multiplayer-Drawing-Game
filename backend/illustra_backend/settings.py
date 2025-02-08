@@ -63,11 +63,10 @@ WSGI_APPLICATION = 'illustra_backend.wsgi.application'
 ASGI_APPLICATION = 'illustra_backend.asgi.application'
 
 # Database configuration using DATABASE_URL
-PRODUCTION = config('PRODUCTION', False)
+PRODUCTION = config('PRODUCTION', True)
 
 DATABASES = {
-        'default': dj_database_url.config(default=config('DATABASE_URL'),
-                )
+    'default': dj_database_url.config(default=config('DATABASE_URL'),)
 }
 
 if not PRODUCTION:
