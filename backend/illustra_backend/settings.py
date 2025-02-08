@@ -143,12 +143,23 @@ CHANNEL_LAYERS = {
 }
 
 # CORS configuration
-CORS_ORIGIN_ALLOW_ALL = False
-
+CORS_ORIGIN_ALLOW_ALL = False  # Ensure it's False for security
 CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:5500",
+    "http://127.0.0.1:5500",  # Your frontend local dev environment
 ]
 CORS_ALLOW_CREDENTIALS = True
 
-# Update CSRF trusted origins for production as needed
-CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:5500", "https://guessit.up.railway.app"]
+CORS_ALLOW_HEADERS = [
+    "content-type",
+    "authorization",
+    "x-csrftoken",
+]
+
+# CSRF settings
+CSRF_TRUSTED_ORIGINS = [
+    "http://127.0.0.1:5500",
+    "https://guessit.up.railway.app",
+]
+CSRF_COOKIE_SECURE = True  # If using HTTPS
+CSRF_COOKIE_HTTPONLY = False
+CSRF_USE_SESSIONS = False
