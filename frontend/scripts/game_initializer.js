@@ -12,7 +12,7 @@ const room_type = params.get('room_type') || 'public';
 console.log(username, room_code, room_type);
 
 // Configuration
-const WS_BASE_URL = "ws://localhost:8000/ws/game/";
+const WS_BASE_URL = "wss://guessit.up.railway.app/ws/";
 
 // Initialize game
 export async function initializeGame(player_name, room_code, room_type) {
@@ -26,8 +26,8 @@ export async function initializeGame(player_name, room_code, room_type) {
         }
 
         const { id: playerId, room: roomId } = response
-        const wsUrl = `${WS_BASE_URL}${roomId}/${playerId}/`;
         console.log("Joined room:", roomId, "as player:", playerId);
+        const wsUrl = `${WS_BASE_URL}${roomId}/${playerId}/`;
 
         const wsManager = new WebSocketManager(wsUrl, player_name, (canvasdata) => canvasManager.websocketActions(canvasdata), (chatdata) => chatManager.displayMessage(chatdata));
         const canvasManager = new CanvasManager(wsManager);
