@@ -33,8 +33,6 @@ class GameController():
                     'id': player_id})
             
             self.room_controller.current_players_count += 1
-            
-            return True
         
         await self.update_leaderboard()
         
