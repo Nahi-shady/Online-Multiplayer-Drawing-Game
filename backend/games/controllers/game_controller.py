@@ -37,6 +37,10 @@ class GameController():
         
         await self.update_leaderboard()
         
+        room = await self.room_controller.get_room()
+        if room and (not room.on or self.room_id not in room_task):
+            await self.start_new_game()
+        
         return False
     
     async def player_left(self, player_id: int) -> bool:
@@ -120,12 +124,12 @@ class GameController():
                 await channel_layer.group_send(
                     self.room_group_name,{
                         "type": "clear_modal"})
-            elif message_type == 'new_game':
-                await channel_layer.group_send(
-                    self.room_group_name,{
-                        'type': 'clear_canvas'})
+            # elif message_type == 'new_game':
+            #     await channel_layer.group_send(
+            #         self.room_group_name,{
+            #             'type': 'clear_canvas'})
                 
-                await self.start_new_game()
+            #     await self.start_new_game()
             
     async def handle_guess(self, player_id: int, guess: str) -> bool:
         correct = False
