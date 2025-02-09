@@ -25,6 +25,7 @@ class GameController():
         self.room_controller = RoomController(self.room_id)
         
     async def player_joined(self, player_id: int) -> bool:
+        print("=============+")
         if self.player_controller.player_joined(player_id):
             await channel_layer.group_send(
                 self.room_group_name, {
