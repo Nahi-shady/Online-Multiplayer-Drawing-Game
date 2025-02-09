@@ -38,7 +38,7 @@ class GameController():
         await self.update_leaderboard()
         
         room = await self.room_controller.get_room()
-        if room and (not room.on or self.room_id not in room_task):
+        if room and room.current_players_count >= 2 and (not room.on or self.room_id not in room_task):
             await self.start_new_game()
         
         return False
