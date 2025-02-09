@@ -225,7 +225,7 @@ class GameController():
             return
         
         drawer_name, turn_count = self.room_controller.drawer.name, self.room_controller.turn_count
-        turn_timer = 30  
+        turn_timer = 80  
         await channel_layer.group_send(
             self.room_group_name,{
                 "type": "new_turn",
