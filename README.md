@@ -17,7 +17,7 @@ A real-time, multiplayer drawing game.
 
 ## Overview
 
-" Illustra is a real-time, multiplayer drawing game built with Django, Django Channels, and WebSockets. Players can join public or private game rooms, take turns drawing, and guess what is being drawn. The application supports live chat, dynamic game state updates, and a responsive canvas for a smooth drawing experience."
+" guezzit is a real-time, multiplayer drawing game built with Django, Django Channels, and WebSockets. Players can join public or private game rooms, take turns drawing, and guess what is being drawn. The application supports live chat, dynamic game state updates, and a responsive canvas for a smooth drawing experience."
 
 ## Features
 
