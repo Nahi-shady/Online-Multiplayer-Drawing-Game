@@ -1,4 +1,4 @@
-# [guezzit](https://guezzit.netlify.app/)
+# guezzit - ([Demo](https://guezzit.netlify.app/))
 
 A real-time, multiplayer drawing game.
 
