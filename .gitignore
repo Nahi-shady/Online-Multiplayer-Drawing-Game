@@ -1,6 +1,7 @@
 # Ignore virtual environments
 *.venv
 *.env
+*.vscode
 Pipfile.lock
 
 # Python ignores
