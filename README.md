@@ -149,7 +149,7 @@ I welcome contributions! Please follow these steps:
 3. Make your changes and commit them (git commit -am 'Add new feature').
 4. Push your branch (git push origin feature/your-feature).
 5. Create a Pull Request with a clear description of your changes.
-6. Please ensure that your contributions adhere to our code style guidelines and that tests pass before submitting.
+6. Please ensure that your contributions adhere to my code style guidelines and that tests pass before submitting.
 
 ## License
 
