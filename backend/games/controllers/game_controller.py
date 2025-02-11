@@ -25,7 +25,6 @@ class GameController():
         self.room_controller = RoomController(self.room_id)
         
     async def player_joined(self, player_id: int) -> bool:
-        print("=============+")
         if self.player_controller.player_joined(player_id):
             await channel_layer.group_send(
                 self.room_group_name, {
@@ -38,10 +37,8 @@ class GameController():
         
         room = await self.room_controller.get_room()
         if room and room.current_players_count >= 2 and (not room.on or self.room_id not in room_task):
-            print('---------')
             await self.start_new_game()
             
-        print('-================')
         return False
     
     async def player_left(self, player_id: int) -> bool:
