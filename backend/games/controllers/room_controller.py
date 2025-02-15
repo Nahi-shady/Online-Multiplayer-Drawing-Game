@@ -127,7 +127,7 @@ class RoomController():
     
     async def prepare_room_for_new_round(self) -> bool:
         room = self.room if self.room else await self.get_room()
-        if room.current_players_count <= 1:
+        if not room or room.current_players_count <= 1:
             # print("Not enough players have joined")
             return False
         
