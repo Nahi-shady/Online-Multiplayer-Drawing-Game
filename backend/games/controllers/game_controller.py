@@ -36,7 +36,7 @@ class GameController():
         await self.update_leaderboard()
         
         room = await self.room_controller.get_room()
-        if room and room.current_players_count >= 2 and (not room.on or self.room_id not in room_task):
+        if room and room.current_players_count >= 2 and not room.on and self.room_id not in room_task:
             await self.start_new_game()
             
         return False
@@ -300,8 +300,9 @@ class GameController():
                     "timeout": timeout,
                     "word": self.room_controller.current_word,
                     "scoreboard": scoreboard,})
-        
-        del room_task[self.room_id]
+        if self.room_id in room_task:
+            del room_task[self.room_id]
+    
         asyncio.create_task(self.sleep_then_start_turn(timeout))
         
     async def provide_hint(self, idx, selected_word):
