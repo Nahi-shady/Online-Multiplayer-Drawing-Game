@@ -81,6 +81,8 @@ class GameController():
             
             if not await self.room_controller.remove_room():
                 logging.info("Room was not removed")
+            
+            return False
         
         await self.update_leaderboard()
         
@@ -299,6 +301,7 @@ class GameController():
                     "word": self.room_controller.current_word,
                     "scoreboard": scoreboard,})
         
+        del room_task[self.room_id]
         asyncio.create_task(self.sleep_then_start_turn(timeout))
         
     async def provide_hint(self, idx, selected_word):
